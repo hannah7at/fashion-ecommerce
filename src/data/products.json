@@ -1,0 +1,274 @@
+{
+  "products": [
+    {
+      "id": 1,
+      "name": "Classic White Shirt",
+      "category": "shirt",
+      "color": "white",
+      "style": "formal",
+      "price": 350,
+      "image": "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=500&auto=format&fit=crop"
+    },
+    {
+      "id": 2,
+      "name": "Blue Denim Shirt",
+      "category": "shirt",
+      "color": "blue",
+      "style": "casual",
+      "price": 280,
+      "image": "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=500&auto=format&fit=crop"
+    },
+    {
+      "id": 3,
+      "name": "Black Slim T-Shirt",
+      "category": "shirt",
+      "color": "black",
+      "style": "casual",
+      "price": 150,
+      "image": "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500&auto=format&fit=crop"
+    },
+    {
+      "id": 4,
+      "name": "Sporty Gray Tee",
+      "category": "shirt",
+      "color": "gray",
+      "style": "sporty",
+      "price": 180,
+      "image": "https://images.unsplash.com/photo-1571945153237-4929e783af4a?w=500&auto=format&fit=crop"
+    },
+    {
+      "id": 5,
+      "name": "Beige Linen Shirt",
+      "category": "shirt",
+      "color": "beige",
+      "style": "casual",
+      "price": 320,
+      "image": "https://images.unsplash.com/photo-1620012253295-c15cc3e65df4?w=500&auto=format&fit=crop"
+    },
+    {
+      "id": 6,
+      "name": "Navy Striped Shirt",
+      "category": "shirt",
+      "color": "blue",
+      "style": "formal",
+      "price": 340,
+      "image": "https://images.unsplash.com/photo-1563630423918-b58f07336ac9?w=500&auto=format&fit=crop"
+    },
+    {
+      "id": 7,
+      "name": "Black Formal Trousers",
+      "category": "pants",
+      "color": "black",
+      "style": "formal",
+      "price": 450,
+      "image": "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=500&auto=format&fit=crop"
+    },
+    {
+      "id": 8,
+      "name": "Blue Denim Jeans",
+      "category": "pants",
+      "color": "blue",
+      "style": "casual",
+      "price": 400,
+      "image": "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=500&auto=format&fit=crop"
+    },
+    {
+      "id": 9,
+      "name": "Gray Jogger Pants",
+      "category": "pants",
+      "color": "gray",
+      "style": "sporty",
+      "price": 300,
+      "image": "https://images.unsplash.com/photo-1552902865-b72c031ac5ea?w=500&auto=format&fit=crop"
+    },
+    {
+      "id": 10,
+      "name": "Beige Chino Pants",
+      "category": "pants",
+      "color": "beige",
+      "style": "casual",
+      "price": 380,
+      "image": "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=500&auto=format&fit=crop"
+    },
+    {
+      "id": 11,
+      "name": "Black Skinny Jeans",
+      "category": "pants",
+      "color": "black",
+      "style": "casual",
+      "price": 420,
+      "image": "https://images.unsplash.com/photo-1602293589930-45821b90e415?w=500&auto=format&fit=crop"
+    },
+    {
+      "id": 12,
+      "name": "Black Leather Shoes",
+      "category": "shoes",
+      "color": "black",
+      "style": "formal",
+      "price": 600,
+      "image": "https://images.unsplash.com/photo-1614252369475-531eba835eb1?w=500&auto=format&fit=crop"
+    },
+    {
+      "id": 13,
+      "name": "White Sneakers",
+      "category": "shoes",
+      "color": "white",
+      "style": "casual",
+      "price": 500,
+      "image": "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=500&auto=format&fit=crop"
+    },
+    {
+      "id": 14,
+      "name": "Gray Running Shoes",
+      "category": "shoes",
+      "color": "gray",
+      "style": "sporty",
+      "price": 550,
+      "image": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&auto=format&fit=crop"
+    },
+    {
+      "id": 15,
+      "name": "Brown Loafers",
+      "category": "shoes",
+      "color": "brown",
+      "style": "casual",
+      "price": 480,
+      "image": "https://images.unsplash.com/photo-1533867617858-e7b97e060509?w=500&auto=format&fit=crop"
+    },
+    {
+      "id": 16,
+      "name": "Black High-Top Sneakers",
+      "category": "shoes",
+      "color": "black",
+      "style": "sporty",
+      "price": 520,
+      "image": "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=500&auto=format&fit=crop"
+    },
+    {
+      "id": 17,
+      "name": "Black Blazer",
+      "category": "jacket",
+      "color": "black",
+      "style": "formal",
+      "price": 700,
+      "image": "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=500&auto=format&fit=crop"
+    },
+    {
+      "id": 18,
+      "name": "Denim Jacket",
+      "category": "jacket",
+      "color": "blue",
+      "style": "casual",
+      "price": 450,
+      "image": "https://images.unsplash.com/photo-1551028719-00167b16eac5?w=500&auto=format&fit=crop"
+    },
+    {
+      "id": 19,
+      "name": "Gray Zip Hoodie",
+      "category": "jacket",
+      "color": "gray",
+      "style": "sporty",
+      "price": 350,
+      "image": "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=500&auto=format&fit=crop"
+    },
+    {
+      "id": 20,
+      "name": "Beige Trench Coat",
+      "category": "jacket",
+      "color": "beige",
+      "style": "formal",
+      "price": 850,
+      "image": "https://images.unsplash.com/photo-1539533018447-63fcce2678e3?w=500&auto=format&fit=crop"
+    },
+    {
+      "id": 21,
+      "name": "Black Bomber Jacket",
+      "category": "jacket",
+      "color": "black",
+      "style": "casual",
+      "price": 500,
+      "image": "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=500&auto=format&fit=crop"
+    },
+    {
+      "id": 22,
+      "name": "Black Leather Belt",
+      "category": "accessory",
+      "color": "black",
+      "style": "formal",
+      "price": 150,
+      "image": "https://images.unsplash.com/photo-1624222247344-550fb60583dc?w=500&auto=format&fit=crop"
+    },
+    {
+      "id": 23,
+      "name": "Brown Canvas Bag",
+      "category": "accessory",
+      "color": "brown",
+      "style": "casual",
+      "price": 250,
+      "image": "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=500&auto=format&fit=crop"
+    },
+    {
+      "id": 24,
+      "name": "Black Sports Cap",
+      "category": "accessory",
+      "color": "black",
+      "style": "sporty",
+      "price": 120,
+      "image": "https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=500&auto=format&fit=crop"
+    },
+    {
+      "id": 25,
+      "name": "Gray Wool Scarf",
+      "category": "accessory",
+      "color": "gray",
+      "style": "formal",
+      "price": 180,
+      "image": "https://images.unsplash.com/photo-1520903920243-00d872a2d1c9?w=500&auto=format&fit=crop"
+    },
+    {
+      "id": 26,
+      "name": "Red Casual Dress",
+      "category": "dress",
+      "color": "red",
+      "style": "casual",
+      "price": 500,
+      "image": "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=500&auto=format&fit=crop"
+    },
+    {
+      "id": 27,
+      "name": "Black Evening Dress",
+      "category": "dress",
+      "color": "black",
+      "style": "formal",
+      "price": 900,
+      "image": "https://images.unsplash.com/photo-1566174053879-31528523f8ae?w=500&auto=format&fit=crop"
+    },
+    {
+      "id": 28,
+      "name": "White Summer Dress",
+      "category": "dress",
+      "color": "white",
+      "style": "casual",
+      "price": 420,
+      "image": "https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=500&auto=format&fit=crop"
+    },
+    {
+      "id": 29,
+      "name": "Beige Wide-Leg Pants",
+      "category": "pants",
+      "color": "beige",
+      "style": "formal",
+      "price": 400,
+      "image": "https://images.unsplash.com/photo-1509551388413-e18d0ac5d495?w=500&auto=format&fit=crop"
+    },
+    {
+      "id": 30,
+      "name": "White Formal Shirt (Slim Fit)",
+      "category": "shirt",
+      "color": "white",
+      "style": "formal",
+      "price": 370,
+      "image": "https://images.unsplash.com/photo-1489370603040-dc6c281ffcdb?w=500&auto=format&fit=crop"
+    }
+  ]
+}
