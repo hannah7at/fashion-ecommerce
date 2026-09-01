@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue'
-import BaseButton from './common/Button.vue'
+import BaseButton from './Button.vue'
 
 /**
  * ProductCard - shared Product Card component (Design System)
@@ -39,7 +39,7 @@ const discountLabel = computed(() => {
 })
 
 function formatPrice(value) {
-  return `${value} USD`
+  return `${value} EGP`
 }
 </script>
 

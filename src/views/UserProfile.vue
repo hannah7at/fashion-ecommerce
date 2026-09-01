@@ -1,9 +1,9 @@
-<script setup>
+<script>
 import { ref, reactive, computed } from 'vue'
 import BaseButton from '../components/common/Button.vue'
 import Loading from '../components/common/Loading.vue'
 import Modal from '../components/common/Modal.vue'
-import ProductCard from '../components/common/ProductCard.vue'
+import ProductCard from '../components/ProductCard.vue'
 import productsData from '../data/products.json'
 
 /**
