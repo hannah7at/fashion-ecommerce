@@ -5,15 +5,18 @@ import { watch, onBeforeUnmount } from 'vue'
  * Modal - shared Modal component (Design System)
  * Usage: <Modal v-model="isOpen" title="...">content</Modal>
  */
+
 const props = defineProps({
   modelValue: {
     type: Boolean,
     default: false
   },
+
   title: {
     type: String,
     default: ''
   },
+
   closeOnOverlay: {
     type: Boolean,
     default: true
@@ -28,23 +31,29 @@ function close() {
 }
 
 function handleOverlayClick() {
-  if (props.closeOnOverlay) close()
+  if (props.closeOnOverlay) {
+    close()
+  }
 }
 
 function handleKeydown(event) {
-  if (event.key === 'Escape' && props.modelValue) close()
+  if (event.key === 'Escape' && props.modelValue) {
+    close()
+  }
 }
 
 watch(
   () => props.modelValue,
   (isOpen) => {
     document.body.style.overflow = isOpen ? 'hidden' : ''
+
     if (isOpen) {
       document.addEventListener('keydown', handleKeydown)
     } else {
       document.removeEventListener('keydown', handleKeydown)
     }
-  }
+  },
+  { immediate: true }
 )
 
 onBeforeUnmount(() => {
@@ -56,15 +65,46 @@ onBeforeUnmount(() => {
 <template>
   <Teleport to="body">
     <Transition name="modal-fade">
-      <div v-if="modelValue" class="modal-overlay" @click.self="handleOverlayClick">
-        <div class="modal-card" role="dialog" aria-modal="true">
-          <header class="modal-card__header" v-if="title || $slots.header">
+      <div
+        v-if="modelValue"
+        class="modal-overlay"
+        @click.self="handleOverlayClick"
+      >
+        <div
+          class="modal-card"
+          role="dialog"
+          aria-modal="true"
+          :aria-label="title || 'Modal dialog'"
+        >
+          <header
+            v-if="title || $slots.header"
+            class="modal-card__header"
+          >
             <slot name="header">
-              <h3 class="modal-card__title">{{ title }}</h3>
+              <h3 class="modal-card__title">
+                {{ title }}
+              </h3>
             </slot>
-            <button class="modal-card__close" type="button" aria-label="Close" @click="close">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M2 2L14 14M14 2L2 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+
+            <button
+              class="modal-card__close"
+              type="button"
+              aria-label="Close"
+              @click="close"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M2 2L14 14M14 2L2 14"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                />
               </svg>
             </button>
           </header>
@@ -73,7 +113,10 @@ onBeforeUnmount(() => {
             <slot />
           </div>
 
-          <footer class="modal-card__footer" v-if="$slots.footer">
+          <footer
+            v-if="$slots.footer"
+            class="modal-card__footer"
+          >
             <slot name="footer" />
           </footer>
         </div>
@@ -134,6 +177,7 @@ onBeforeUnmount(() => {
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
+
 .modal-card__close:hover {
   background-color: var(--color-pink-light);
 }
@@ -156,6 +200,7 @@ onBeforeUnmount(() => {
 .modal-fade-leave-active {
   transition: opacity 0.2s ease;
 }
+
 .modal-fade-enter-from,
 .modal-fade-leave-to {
   opacity: 0;
@@ -166,6 +211,7 @@ onBeforeUnmount(() => {
     align-items: flex-end;
     padding: 0;
   }
+
   .modal-card {
     max-width: 100%;
     max-height: calc(100svh - var(--space-8));

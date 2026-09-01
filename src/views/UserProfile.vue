@@ -1,4 +1,4 @@
-<script>
+<script setup>
 import { ref, reactive, computed } from 'vue'
 import BaseButton from '../components/common/Button.vue'
 import Loading from '../components/common/Loading.vue'
@@ -37,11 +37,17 @@ function openEditModal() {
 }
 
 function saveProfile() {
+  if (!editForm.name.trim() || !editForm.email.trim()) {
+    return
+  }
+
   isSaving.value = true
+
   // Simulated save - replace with a real API/store call on integration.
   setTimeout(() => {
-    user.name = editForm.name
-    user.email = editForm.email
+    user.name = editForm.name.trim()
+    user.email = editForm.email.trim()
+
     isSaving.value = false
     isEditModalOpen.value = false
   }, 900)
@@ -49,9 +55,27 @@ function saveProfile() {
 
 // Mock order history
 const orders = ref([
-  { id: 'ORD-1042', date: '2026-08-12', status: 'Delivered', total: 620, itemsCount: 2 },
-  { id: 'ORD-1038', date: '2026-07-29', status: 'Delivered', total: 350, itemsCount: 1 },
-  { id: 'ORD-1021', date: '2026-06-15', status: 'Cancelled', total: 480, itemsCount: 1 }
+  {
+    id: 'ORD-1042',
+    date: '2026-08-12',
+    status: 'Delivered',
+    total: 620,
+    itemsCount: 2
+  },
+  {
+    id: 'ORD-1038',
+    date: '2026-07-29',
+    status: 'Delivered',
+    total: 350,
+    itemsCount: 1
+  },
+  {
+    id: 'ORD-1021',
+    date: '2026-06-15',
+    status: 'Cancelled',
+    total: 480,
+    itemsCount: 1
+  }
 ])
 
 function statusClass(status) {
@@ -63,11 +87,14 @@ const favoriteIds = ref([2, 7, 13])
 const addingToCartId = ref(null)
 
 const favoriteProducts = computed(() =>
-  productsData.products.filter((p) => favoriteIds.value.includes(p.id))
+  productsData.products.filter((product) =>
+    favoriteIds.value.includes(product.id)
+  )
 )
 
 function toggleFavorite(product) {
   const index = favoriteIds.value.indexOf(product.id)
+
   if (index === -1) {
     favoriteIds.value.push(product.id)
   } else {
@@ -77,6 +104,7 @@ function toggleFavorite(product) {
 
 function addToCart(product) {
   addingToCartId.value = product.id
+
   // Simulated add-to-cart - replace with real cart store call on integration.
   setTimeout(() => {
     addingToCartId.value = null
@@ -85,46 +113,94 @@ function addToCart(product) {
 </script>
 
 <template>
-  <Loading v-if="isPageLoading" full-page text="Loading profile..." />
+  <Loading
+    v-if="isPageLoading"
+    full-page
+    text="Loading profile..."
+  />
 
   <div v-else class="profile-page">
     <!-- Profile header -->
     <section class="profile-header">
-      <img :src="user.avatar" :alt="user.name" class="profile-header__avatar" />
+      <img
+        :src="user.avatar"
+        :alt="user.name"
+        class="profile-header__avatar"
+      />
 
       <div class="profile-header__info">
-        <h1 class="profile-header__name">{{ user.name }}</h1>
-        <p class="profile-header__email">{{ user.email }}</p>
+        <h1 class="profile-header__name">
+          {{ user.name }}
+        </h1>
+
+        <p class="profile-header__email">
+          {{ user.email }}
+        </p>
       </div>
 
-      <BaseButton variant="outline" size="md" @click="openEditModal">
+      <BaseButton
+        variant="outline"
+        size="md"
+        @click="openEditModal"
+      >
         Edit Profile
       </BaseButton>
     </section>
 
     <!-- Order history -->
     <section class="profile-section">
-      <h2 class="profile-section__title">Order History</h2>
+      <h2 class="profile-section__title">
+        Order History
+      </h2>
 
       <div v-if="orders.length" class="orders-list">
-        <div v-for="order in orders" :key="order.id" class="order-row">
+        <div
+          v-for="order in orders"
+          :key="order.id"
+          class="order-row"
+        >
           <div class="order-row__main">
-            <span class="order-row__id">{{ order.id }}</span>
-            <span class="order-row__date">{{ order.date }}</span>
+            <span class="order-row__id">
+              {{ order.id }}
+            </span>
+
+            <span class="order-row__date">
+              {{ order.date }}
+            </span>
           </div>
-          <span class="order-row__items">{{ order.itemsCount }} item(s)</span>
-          <span :class="statusClass(order.status)">{{ order.status }}</span>
-          <span class="order-row__total">{{ order.total }} EGP</span>
+
+          <span class="order-row__items">
+            {{ order.itemsCount }} item(s)
+          </span>
+
+          <span :class="statusClass(order.status)">
+            {{ order.status }}
+          </span>
+
+          <span class="order-row__total">
+            {{ order.total }} USD
+          </span>
         </div>
       </div>
-      <p v-else class="profile-section__empty">No orders yet.</p>
+
+      <p
+        v-else
+        class="profile-section__empty"
+      >
+        No orders yet.
+      </p>
     </section>
 
     <!-- Favorites / wishlist -->
     <section class="profile-section">
-      <h2 class="profile-section__title">Favorites</h2>
+      <h2 class="profile-section__title">
+        Favorites
+      </h2>
 
-      <div v-if="favoriteProducts.length" class="favorites-grid">
+      <div
+        v-if="favoriteProducts.length"
+        class="favorites-grid"
+      >
         <ProductCard
           v-for="product in favoriteProducts"
           :key="product.id"
@@ -135,31 +211,67 @@ function addToCart(product) {
           @add-to-cart="addToCart"
         />
       </div>
-      <p v-else class="profile-section__empty">You haven't added any favorites yet.</p>
+
+      <p
+        v-else
+        class="profile-section__empty"
+      >
+        You haven't added any favorites yet.
+      </p>
     </section>
 
     <!-- Edit profile modal -->
-    <Modal v-model="isEditModalOpen" title="Edit Profile">
-      <form class="edit-form" @submit.prevent="saveProfile">
+    <Modal
+      v-model="isEditModalOpen"
+      title="Edit Profile"
+    >
+      <form
+        class="edit-form"
+        @submit.prevent="saveProfile"
+      >
         <label class="edit-form__field">
           <span>Full name</span>
-          <input v-model="editForm.name" type="text" required />
+
+          <input
+            v-model="editForm.name"
+            type="text"
+            required
+            autocomplete="name"
+          />
         </label>
 
         <label class="edit-form__field">
           <span>Email</span>
-          <input v-model="editForm.email" type="email" required />
-        </label>
-      </form>
 
-      <template #footer>
-        <BaseButton variant="outline" size="md" :disabled="isSaving" @click="isEditModalOpen = false">
-          Cancel
-        </BaseButton>
-        <BaseButton variant="primary" size="md" :loading="isSaving" @click="saveProfile">
-          Save Changes
-        </BaseButton>
-      </template>
+          <input
+            v-model="editForm.email"
+            type="email"
+            required
+            autocomplete="email"
+          />
+        </label>
+
+        <div class="edit-form__actions">
+          <BaseButton
+            variant="outline"
+            size="md"
+            type="button"
+            :disabled="isSaving"
+            @click="isEditModalOpen = false"
+          >
+            Cancel
+          </BaseButton>
+
+          <BaseButton
+            variant="primary"
+            size="md"
+            type="submit"
+            :loading="isSaving"
+          >
+            Save Changes
+          </BaseButton>
+        </div>
+      </form>
     </Modal>
   </div>
 </template>
@@ -283,14 +395,17 @@ function addToCart(product) {
   text-align: center;
   width: fit-content;
 }
+
 .order-status--delivered {
   background-color: #e3f0e8;
   color: #1f7a45;
 }
+
 .order-status--cancelled {
   background-color: #fbe6e6;
   color: #c0435a;
 }
+
 .order-status--pending {
   background-color: var(--color-pink-light);
   color: var(--color-primary);
@@ -333,6 +448,12 @@ function addToCart(product) {
   border-color: var(--color-primary);
 }
 
+.edit-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
   .favorites-grid {
@@ -370,6 +491,10 @@ function addToCart(product) {
   .favorites-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: var(--space-3);
+  }
+
+  .edit-form__actions {
+    flex-direction: column;
   }
 }
 </style>

@@ -1,32 +1,39 @@
 <script setup>
+
 /**
  * BaseButton - shared Button component (Design System)
  * Variants: primary | secondary | outline
  * Supports disabled state, loading state, and 3 sizes.
  */
+
 const props = defineProps({
   variant: {
     type: String,
     default: 'primary',
     validator: (v) => ['primary', 'secondary', 'outline'].includes(v)
   },
+
   size: {
     type: String,
     default: 'md',
     validator: (v) => ['sm', 'md', 'lg'].includes(v)
   },
+
   type: {
     type: String,
     default: 'button'
   },
+
   disabled: {
     type: Boolean,
     default: false
   },
+
   loading: {
     type: Boolean,
     default: false
   },
+
   block: {
     type: Boolean,
     default: false
@@ -37,6 +44,7 @@ const emit = defineEmits(['click'])
 
 function handleClick(event) {
   if (props.disabled || props.loading) return
+
   emit('click', event)
 }
 </script>
@@ -45,12 +53,27 @@ function handleClick(event) {
   <button
     :type="type"
     class="base-button"
-    :class="[`base-button--${variant}`, `base-button--${size}`, { 'is-block': block, 'is-loading': loading }]"
+    :class="[
+      `base-button--${variant}`,
+      `base-button--${size}`,
+      {
+        'is-block': block,
+        'is-loading': loading
+      }
+    ]"
     :disabled="disabled || loading"
     @click="handleClick"
   >
-    <span class="base-button__spinner" v-if="loading" aria-hidden="true"></span>
-    <span class="base-button__content" :class="{ 'is-hidden': loading }">
+    <span
+      v-if="loading"
+      class="base-button__spinner"
+      aria-hidden="true"
+    ></span>
+
+    <span
+      class="base-button__content"
+      :class="{ 'is-hidden': loading }"
+    >
       <slot />
     </span>
   </button>
@@ -69,7 +92,11 @@ function handleClick(event) {
   border-radius: var(--radius-default);
   cursor: pointer;
   white-space: nowrap;
-  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    opacity 0.2s ease;
 }
 
 .base-button.is-block {
@@ -81,10 +108,12 @@ function handleClick(event) {
   padding: var(--space-2) var(--space-3);
   font-size: 14px;
 }
+
 .base-button--md {
   padding: var(--space-3) var(--space-4);
   font-size: 15px;
 }
+
 .base-button--lg {
   padding: var(--space-4) var(--space-6);
   font-size: 16px;
@@ -96,6 +125,7 @@ function handleClick(event) {
   color: var(--color-white);
   border-color: var(--color-primary);
 }
+
 .base-button--primary:hover:not(:disabled) {
   background-color: var(--color-primary-hover);
   border-color: var(--color-primary-hover);
@@ -106,6 +136,7 @@ function handleClick(event) {
   color: var(--color-white);
   border-color: var(--color-sand);
 }
+
 .base-button--secondary:hover:not(:disabled) {
   background-color: var(--color-primary-hover);
   border-color: var(--color-primary-hover);
@@ -116,6 +147,7 @@ function handleClick(event) {
   color: var(--color-primary);
   border-color: var(--color-primary);
 }
+
 .base-button--outline:hover:not(:disabled) {
   background-color: var(--color-pink-light);
 }

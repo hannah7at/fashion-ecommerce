@@ -4,60 +4,131 @@ import BaseButton from './common/Button.vue'
 
 /**
  * ProductCard - shared Product Card component (Design System)
- * Fully reusable via props - takes a "product" object rather than
- * hardcoded data, so it works with any product source.
  *
  * Expected product shape:
- * { id, name, price, image, oldPrice?, discount? }
+ * {
+ *   id,
+ *   name,
+ *   price,
+ *   currency,
+ *   image,
+ *   oldPrice?,
+ *   discount?,
+ *   rating?,
+ *   reviewsCount?,
+ *   brand?
+ * }
  */
+
 const props = defineProps({
   product: {
     type: Object,
     required: true
   },
+
   isFavorite: {
     type: Boolean,
     default: false
   },
+
   addingToCart: {
     type: Boolean,
     default: false
   }
 })
 
-const emit = defineEmits(['toggle-favorite', 'add-to-cart'])
+const emit = defineEmits([
+  'toggle-favorite',
+  'add-to-cart'
+])
 
-const hasOldPrice = computed(() => props.product.oldPrice && props.product.oldPrice > props.product.price)
+const hasOldPrice = computed(() => {
+  return (
+    props.product.oldPrice &&
+    props.product.oldPrice > props.product.price
+  )
+})
 
 const discountLabel = computed(() => {
-  if (props.product.discount) return `-${props.product.discount}%`
-  if (hasOldPrice.value) {
-    const pct = Math.round(100 - (props.product.price / props.product.oldPrice) * 100)
-    return `-${pct}%`
+  if (props.product.discount) {
+    return `-${props.product.discount}%`
   }
+
+  if (hasOldPrice.value) {
+    const percentage = Math.round(
+      100 -
+        (props.product.price / props.product.oldPrice) * 100
+    )
+
+    return `-${percentage}%`
+  }
+
   return null
 })
 
-function formatPrice(value) {
-  return `${value} USD`
+function formatPrice(value, currency = 'USD') {
+  if (typeof value !== 'number') {
+    return ''
+  }
+
+  return `${value.toFixed(2)} ${currency}`
+}
+
+function handleFavorite() {
+  emit('toggle-favorite', props.product)
+}
+
+function handleAddToCart() {
+  if (props.addingToCart) return
+
+  emit('add-to-cart', props.product)
+}
+
+function handleImageError(event) {
+  event.target.style.visibility = 'hidden'
 }
 </script>
 
 <template>
   <article class="product-card">
+    <!-- Product Image -->
     <div class="product-card__media">
-      <img :src="product.image" :alt="product.name" class="product-card__image" loading="lazy" />
+      <img
+        :src="product.image"
+        :alt="product.name"
+        class="product-card__image"
+        loading="lazy"
+        @error="handleImageError"
+      />
 
-      <span v-if="discountLabel" class="product-card__badge">{{ discountLabel }}</span>
+      <!-- Discount -->
+      <span
+        v-if="discountLabel"
+        class="product-card__badge"
+      >
+        {{ discountLabel }}
+      </span>
 
+      <!-- Favorite -->
       <button
         class="product-card__favorite"
         :class="{ 'is-active': isFavorite }"
         type="button"
-        :aria-label="isFavorite ? 'Remove from favorites' : 'Add to favorites'"
-        @click="emit('toggle-favorite', product)"
+        :aria-label="
+          isFavorite
+            ? 'Remove from favorites'
+            : 'Add to favorites'
+        "
+        :aria-pressed="isFavorite"
+        @click="handleFavorite"
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" :fill="isFavorite ? 'currentColor' : 'none'">
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          :fill="isFavorite ? 'currentColor' : 'none'"
+          aria-hidden="true"
+        >
           <path
             d="M12 21s-6.7-4.35-9.3-8.28C1 10.1 1.6 6.6 4.7 5.1c2.3-1.1 4.6-.2 5.9 1.5.5.6.9 1.2 1.4 1.9.5-.7.9-1.3 1.4-1.9 1.3-1.7 3.6-2.6 5.9-1.5 3.1 1.5 3.7 5 2 7.62C18.7 16.65 12 21 12 21z"
             stroke="currentColor"
@@ -68,20 +139,60 @@ function formatPrice(value) {
       </button>
     </div>
 
+    <!-- Product Info -->
     <div class="product-card__body">
-      <h4 class="product-card__name">{{ product.name }}</h4>
+      <p
+        v-if="product.brand"
+        class="product-card__brand"
+      >
+        {{ product.brand }}
+      </p>
 
-      <div class="product-card__prices">
-        <span class="product-card__price">{{ formatPrice(product.price) }}</span>
-        <span v-if="hasOldPrice" class="product-card__old-price">{{ formatPrice(product.oldPrice) }}</span>
+      <h4 class="product-card__name">
+        {{ product.name }}
+      </h4>
+
+      <!-- Rating -->
+      <div
+        v-if="product.rating"
+        class="product-card__rating"
+        aria-label="Product rating"
+      >
+        <span class="product-card__star">★</span>
+
+        <span>
+          {{ Number(product.rating).toFixed(1) }}
+        </span>
+
+        <span
+          v-if="product.reviewsCount"
+          class="product-card__reviews"
+        >
+          ({{ product.reviewsCount }})
+        </span>
       </div>
 
+      <!-- Prices -->
+      <div class="product-card__prices">
+        <span class="product-card__price">
+          {{ formatPrice(product.price, product.currency) }}
+        </span>
+
+        <span
+          v-if="hasOldPrice"
+          class="product-card__old-price"
+        >
+          {{ formatPrice(product.oldPrice, product.currency) }}
+        </span>
+      </div>
+
+      <!-- Add to Cart -->
       <BaseButton
         variant="primary"
         size="sm"
         block
         :loading="addingToCart"
-        @click="emit('add-to-cart', product)"
+        @click="handleAddToCart"
       >
         Add to Cart
       </BaseButton>
@@ -98,7 +209,9 @@ function formatPrice(value) {
   overflow: hidden;
   box-shadow: 0 4px 16px rgba(27, 59, 54, 0.06);
   font-family: var(--font-family-base);
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
 }
 
 .product-card:hover {
@@ -106,10 +219,12 @@ function formatPrice(value) {
   transform: translateY(-2px);
 }
 
+/* Image */
 .product-card__media {
   position: relative;
   aspect-ratio: 3 / 4;
   background-color: var(--color-pink-light);
+  overflow: hidden;
 }
 
 .product-card__image {
@@ -119,6 +234,7 @@ function formatPrice(value) {
   display: block;
 }
 
+/* Discount Badge */
 .product-card__badge {
   position: absolute;
   top: var(--space-3);
@@ -131,6 +247,7 @@ function formatPrice(value) {
   border-radius: var(--radius-pill);
 }
 
+/* Favorite */
 .product-card__favorite {
   position: absolute;
   top: var(--space-3);
@@ -145,15 +262,20 @@ function formatPrice(value) {
   background-color: var(--color-white);
   color: var(--color-sand);
   cursor: pointer;
-  transition: color 0.2s ease, transform 0.15s ease;
+  transition:
+    color 0.2s ease,
+    transform 0.15s ease;
 }
+
 .product-card__favorite:hover {
   transform: scale(1.08);
 }
+
 .product-card__favorite.is-active {
   color: #c0435a;
 }
 
+/* Body */
 .product-card__body {
   display: flex;
   flex-direction: column;
@@ -161,23 +283,55 @@ function formatPrice(value) {
   padding: var(--space-4);
 }
 
+.product-card__brand {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-sand);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .product-card__name {
   font-size: 14px;
   font-weight: 500;
+  line-height: 1.4;
   color: var(--color-gray);
   margin: 0;
+
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+
   min-height: 2.6em;
 }
 
+/* Rating */
+.product-card__rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--color-gray);
+}
+
+.product-card__star {
+  font-size: 14px;
+  color: #d89b3d;
+}
+
+.product-card__reviews {
+  color: var(--color-sand);
+}
+
+/* Prices */
 .product-card__prices {
   display: flex;
   align-items: baseline;
   gap: var(--space-2);
+  flex-wrap: wrap;
 }
 
 .product-card__price {

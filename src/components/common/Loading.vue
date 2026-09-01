@@ -5,16 +5,19 @@
  *  - fullPage: covers the viewport (page-level loading)
  *  - default: inline spinner, useful for cards/sections/product loading
  */
+
 defineProps({
   size: {
     type: String,
     default: 'md',
     validator: (v) => ['sm', 'md', 'lg'].includes(v)
   },
+
   text: {
     type: String,
     default: ''
   },
+
   fullPage: {
     type: Boolean,
     default: false
@@ -23,13 +26,40 @@ defineProps({
 </script>
 
 <template>
-  <div v-if="fullPage" class="loading loading--full-page">
-    <span class="loading__spinner" :class="`loading__spinner--${size}`"></span>
-    <p v-if="text" class="loading__text">{{ text }}</p>
+  <!-- Full Page Loading -->
+  <div
+    v-if="fullPage"
+    class="loading loading--full-page"
+    role="status"
+    aria-live="polite"
+  >
+    <span
+      class="loading__spinner"
+      :class="`loading__spinner--${size}`"
+      aria-hidden="true"
+    ></span>
+
+    <p v-if="text" class="loading__text">
+      {{ text }}
+    </p>
   </div>
-  <div v-else class="loading loading--inline">
-    <span class="loading__spinner" :class="`loading__spinner--${size}`"></span>
-    <span v-if="text" class="loading__text">{{ text }}</span>
+
+  <!-- Inline Loading -->
+  <div
+    v-else
+    class="loading loading--inline"
+    role="status"
+    aria-live="polite"
+  >
+    <span
+      class="loading__spinner"
+      :class="`loading__spinner--${size}`"
+      aria-hidden="true"
+    ></span>
+
+    <span v-if="text" class="loading__text">
+      {{ text }}
+    </span>
   </div>
 </template>
 
@@ -66,11 +96,13 @@ defineProps({
   height: 16px;
   border-width: 2px;
 }
+
 .loading__spinner--md {
   width: 28px;
   height: 28px;
   border-width: 3px;
 }
+
 .loading__spinner--lg {
   width: 44px;
   height: 44px;
