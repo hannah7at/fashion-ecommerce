@@ -1,48 +1,23 @@
-import { useMemo } from "react";
 import products from "../data/products.json";
 
-const useOutfitEngine = ({ style, color, budget }) => {
-  const outfit = useMemo(() => {
-    let items = [...products];
+const useOutfitEngine = (product) => {
+  if (!product) {
+    return [];
+  }
 
-    // Filter by selected style
-    if (style) {
-      items = items.filter((item) => item.style === style);
+  const suggestions = products.filter((item) => {
+    if (item.id === product.id) {
+      return false;
     }
 
-    // Filter by selected color
-    if (color) {
-      items = items.filter((item) => item.color === color);
+    if (item.category === product.category) {
+      return false;
     }
 
-    // Filter by budget
-    if (budget) {
-      items = items.filter((item) => item.price <= Number(budget));
-    }
+    return item.style === product.style || item.color === product.color;
+  });
 
-    // Organize products by category
-    const categories = {};
-
-    items.forEach((item) => {
-      if (!categories[item.category]) {
-        categories[item.category] = [];
-      }
-
-      categories[item.category].push(item);
-    });
-
-    // Pick one product from each category
-    const selectedItems = Object.values(categories).map(
-      (categoryItems) => categoryItems[0]
-    );
-
-    return selectedItems;
-  }, [style, color, budget]);
-
-  return {
-    outfit,
-    products: products,
-  };
+  return suggestions.slice(0, 3);
 };
 
 export default useOutfitEngine;
