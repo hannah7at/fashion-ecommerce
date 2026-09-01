@@ -1,11 +1,11 @@
-import products from "../data/products.json";
+import data from "../data/products.json";
 
 const useOutfitEngine = (product) => {
   if (!product) {
     return [];
   }
 
-  const suggestions = products.filter((item) => {
+  const suggestions = data.products.filter((item) => {
     if (item.id === product.id) {
       return false;
     }
