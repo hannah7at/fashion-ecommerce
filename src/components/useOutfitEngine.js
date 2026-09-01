@@ -1,54 +1,48 @@
-import products from '../data/products.json'
+import { useMemo } from "react";
+import products from "../data/products.json";
 
-export function useOutfitEngine() {
+const useOutfitEngine = ({ style, color, budget }) => {
+  const outfit = useMemo(() => {
+    let items = [...products];
 
-  const getSuggestions = (product) => {
-
-    if (!product) {
-      return []
+    // Filter by selected style
+    if (style) {
+      items = items.filter((item) => item.style === style);
     }
 
-    const suggestions = products
-      // Remove the current product
-      .filter(item => item.id !== product.id)
+    // Filter by selected color
+    if (color) {
+      items = items.filter((item) => item.color === color);
+    }
 
-      // Use products from different categories
-      .filter(item => item.category !== product.category)
+    // Filter by budget
+    if (budget) {
+      items = items.filter((item) => item.price <= Number(budget));
+    }
 
-      // Calculate compatibility score
-      .map(item => {
+    // Organize products by category
+    const categories = {};
 
-        let score = 0
+    items.forEach((item) => {
+      if (!categories[item.category]) {
+        categories[item.category] = [];
+      }
 
-        // Same style
-        if (item.style === product.style) {
-          score += 2
-        }
+      categories[item.category].push(item);
+    });
 
-        // Same color
-        if (item.color === product.color) {
-          score += 1
-        }
+    // Pick one product from each category
+    const selectedItems = Object.values(categories).map(
+      (categoryItems) => categoryItems[0]
+    );
 
-        return {
-          ...item,
-          score
-        }
-      })
-
-      // Keep only matching products
-      .filter(item => item.score > 0)
-
-      // Best matches first
-      .sort((a, b) => b.score - a.score)
-
-      // Return maximum 3 products
-      .slice(0, 3)
-
-    return suggestions
-  }
+    return selectedItems;
+  }, [style, color, budget]);
 
   return {
-    getSuggestions
-  }
-}
+    outfit,
+    products: products,
+  };
+};
+
+export default useOutfitEngine;
