@@ -1,5 +1,7 @@
 import data from "../data/products.json";
 
+const products = data.products;
+
 const CATEGORY_GROUPS = {
   top: ["shirt", "t-shirt", "polo", "sweatshirt", "top"],
   pants: ["pants", "men's-pants", "cargo-pants", "men's-cargo-pants"],
@@ -58,25 +60,40 @@ const useOutfitEngine = (product) => {
 
   const requiredCategories = getRequiredCategories(product);
 
-  const candidates = data.products
+  const candidates = products
     .filter((item) => {
+      // Exclude current product
       if (item.id === product.id) {
         return false;
       }
 
+      // Exclude same category
       if (item.category === product.category) {
         return false;
       }
 
+      // Gender filtering
+      // Same gender is allowed, and unisex is allowed with both.
+      if (
+        item.gender !== product.gender &&
+        item.gender !== "unisex" &&
+        product.gender !== "unisex"
+      ) {
+        return false;
+      }
+
+      // Only products that belong to a known category group
       return getCategoryGroup(item.category) !== null;
     })
     .map((item) => {
       let compatibilityScore = 0;
 
+      // Same style → +2
       if (item.style === product.style) {
         compatibilityScore += 2;
       }
 
+      // Same color → +1
       if (item.color === product.color) {
         compatibilityScore += 1;
       }
@@ -93,7 +110,8 @@ const useOutfitEngine = (product) => {
 
   const outfit = {};
 
-  // Select the best candidate for each REQUIRED category only
+  // Select the best product for each required category
+  // If a category has no suitable product, skip it.
   requiredCategories.forEach((category) => {
     const bestCandidate = candidates.find(
       (item) => item.categoryGroup === category
