@@ -1,50 +1,89 @@
 import data from "../data/products.json";
 
-const useOutfitEngine = (product) => {
-  if (!product) {
-    return [];
+const CATEGORY_GROUPS = {
+  pants: ["pants", "men's-pants", "cargo-pants", "men's-cargo-pants"],
+  shoes: ["shoes", "sports-shoes", "women's-shoes", "heels"],
+  accessory: [
+    "accessory",
+    "watch",
+    "women's-watches",
+    "jewelry",
+    "women's-jewellery",
+  ],
+  scarf: ["scarf"],
+};
+
+const getCategoryGroup = (category) => {
+  for (const [group, categories] of Object.entries(CATEGORY_GROUPS)) {
+    if (categories.includes(category)) {
+      return group;
+    }
   }
 
-  const recommendations = data
+  return null;
+};
+
+const useOutfitEngine = (product) => {
+  if (!product) {
+    return {
+      baseProduct: null,
+      outfit: {},
+    };
+  }
+
+  const candidates = data
     .filter((item) => {
-      // Exclude the current product
+      // Exclude current product
       if (item.id === product.id) {
         return false;
       }
 
-      // Exclude products from the same category
+      // Exclude same category
       if (item.category === product.category) {
         return false;
       }
 
-      // Keep only products matching style or color
-      return (
-        item.style === product.style ||
-        item.color === product.color
-      );
+      // Only products that belong to an outfit category
+      return getCategoryGroup(item.category) !== null;
     })
     .map((item) => {
-      let score = 0;
+      let compatibilityScore = 0;
 
       // Same style → +2
       if (item.style === product.style) {
-        score += 2;
+        compatibilityScore += 2;
       }
 
       // Same color → +1
       if (item.color === product.color) {
-        score += 1;
+        compatibilityScore += 1;
       }
 
       return {
         ...item,
-        compatibilityScore: score,
+        compatibilityScore,
+        categoryGroup: getCategoryGroup(item.category),
       };
     })
-    .sort((a, b) => b.compatibilityScore - a.compatibilityScore)
-    .slice(0, 3);
+    .sort(
+      (a, b) => b.compatibilityScore - a.compatibilityScore
+    );
 
-  return recommendations;
+  const outfit = {};
+
+  // Pick the best product from each available category
+  for (const item of candidates) {
+    const group = item.categoryGroup;
+
+    if (!outfit[group]) {
+      outfit[group] = item;
+    }
+  }
+
+  return {
+    baseProduct: product,
+    outfit,
+  };
 };
 
 export default useOutfitEngine;
