@@ -1,6 +1,7 @@
 import data from "../data/products.json";
 
 const CATEGORY_GROUPS = {
+  top: ["shirt", "t-shirt", "polo", "sweatshirt", "top"],
   pants: ["pants", "men's-pants", "cargo-pants", "men's-cargo-pants"],
   shoes: ["shoes", "sports-shoes", "women's-shoes", "heels"],
   accessory: [
@@ -23,6 +24,30 @@ const getCategoryGroup = (category) => {
   return null;
 };
 
+const getRequiredCategories = (product) => {
+  const currentGroup = getCategoryGroup(product.category);
+
+  switch (currentGroup) {
+    case "top":
+      return ["pants", "shoes", "accessory", "scarf"];
+
+    case "pants":
+      return ["top", "shoes", "accessory", "scarf"];
+
+    case "shoes":
+      return ["top", "pants", "accessory", "scarf"];
+
+    case "accessory":
+      return ["top", "pants", "shoes", "scarf"];
+
+    case "scarf":
+      return ["top", "pants", "shoes", "accessory"];
+
+    default:
+      return ["top", "pants", "shoes", "accessory", "scarf"];
+  }
+};
+
 const useOutfitEngine = (product) => {
   if (!product) {
     return {
@@ -31,30 +56,27 @@ const useOutfitEngine = (product) => {
     };
   }
 
+  const requiredCategories = getRequiredCategories(product);
+
   const candidates = data
     .filter((item) => {
-      // Exclude current product
       if (item.id === product.id) {
         return false;
       }
 
-      // Exclude same category
       if (item.category === product.category) {
         return false;
       }
 
-      // Only products that belong to an outfit category
       return getCategoryGroup(item.category) !== null;
     })
     .map((item) => {
       let compatibilityScore = 0;
 
-      // Same style → +2
       if (item.style === product.style) {
         compatibilityScore += 2;
       }
 
-      // Same color → +1
       if (item.color === product.color) {
         compatibilityScore += 1;
       }
@@ -71,14 +93,16 @@ const useOutfitEngine = (product) => {
 
   const outfit = {};
 
-  // Pick the best product from each available category
-  for (const item of candidates) {
-    const group = item.categoryGroup;
+  // Select the best candidate for each REQUIRED category only
+  requiredCategories.forEach((category) => {
+    const bestCandidate = candidates.find(
+      (item) => item.categoryGroup === category
+    );
 
-    if (!outfit[group]) {
-      outfit[group] = item;
+    if (bestCandidate) {
+      outfit[category] = bestCandidate;
     }
-  }
+  });
 
   return {
     baseProduct: product,
