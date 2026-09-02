@@ -58,7 +58,7 @@ const useOutfitEngine = (product) => {
 
   const requiredCategories = getRequiredCategories(product);
 
-  const candidates = data
+  const candidates = data.products
     .filter((item) => {
       if (item.id === product.id) {
         return false;
