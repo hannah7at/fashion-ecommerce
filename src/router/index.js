@@ -1,9 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
+import HomeView from '../views/Home.vue' 
 import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
 import UserProfile from '../views/UserProfile.vue'
-import CartView from '../views/CartView.vue' 
+import CartView from '../views/CartView.vue'
 import { useAuthStore } from '../stores/auth'
 
 const routes = [
@@ -31,7 +31,7 @@ const routes = [
   {
     path: '/cart',
     name: 'cart',
-    component: CartView 
+    component: CartView
   }
 ]
 
