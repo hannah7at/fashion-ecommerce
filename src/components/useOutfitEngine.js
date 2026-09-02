@@ -5,19 +5,46 @@ const useOutfitEngine = (product) => {
     return [];
   }
 
-  const suggestions = data.products.filter((item) => {
-    if (item.id === product.id) {
-      return false;
-    }
+  const recommendations = data
+    .filter((item) => {
+      // Exclude the current product
+      if (item.id === product.id) {
+        return false;
+      }
 
-    if (item.category === product.category) {
-      return false;
-    }
+      // Exclude products from the same category
+      if (item.category === product.category) {
+        return false;
+      }
 
-    return item.style === product.style || item.color === product.color;
-  });
+      // Keep only products matching style or color
+      return (
+        item.style === product.style ||
+        item.color === product.color
+      );
+    })
+    .map((item) => {
+      let score = 0;
 
-  return suggestions.slice(0, 3);
+      // Same style → +2
+      if (item.style === product.style) {
+        score += 2;
+      }
+
+      // Same color → +1
+      if (item.color === product.color) {
+        score += 1;
+      }
+
+      return {
+        ...item,
+        compatibilityScore: score,
+      };
+    })
+    .sort((a, b) => b.compatibilityScore - a.compatibilityScore)
+    .slice(0, 3);
+
+  return recommendations;
 };
 
 export default useOutfitEngine;
