@@ -10,6 +10,8 @@ const auth = useAuthStore()
 const router = useRouter()
 
 const handleLogin = () => {
+  if (!email.value || !password.value) return
+
   auth.login(email.value, password.value)
 
   if (auth.isLoggedIn) {
@@ -23,22 +25,36 @@ const handleLogin = () => {
     <div class="container">
       <div class="row justify-content-center align-items-center">
         
-        <!-- قسم الصورة -->
+        <!-- الصورة -->
         <div class="col-md-6 d-none d-md-block text-center p-3">
           <img src="/login.jpeg" alt="Login Illustration" class="img-fluid custom-image" />
         </div>
 
-        <!-- قسم كارت تسجيل الدخول -->
+        <!-- الكارت -->
         <div class="col-md-6 col-lg-5">
           <div class="card shadow p-4 p-md-5 border-0 custom-card">
             <h3 class="text-center mb-4 custom-title">Login to Lumora</h3>
 
-            <input v-model="email" class="form-control mb-3 custom-input" placeholder="Email" />
-            <input v-model="password" type="password" class="form-control mb-4 custom-input" placeholder="Password" />
+            <form @submit.prevent="handleLogin">
+              <input 
+                v-model="email" 
+                type="email" 
+                class="form-control mb-3 custom-input" 
+                placeholder="Email" 
+                required 
+              />
+              <input 
+                v-model="password" 
+                type="password" 
+                class="form-control mb-4 custom-input" 
+                placeholder="Password" 
+                required 
+              />
 
-            <button class="btn w-100 custom-btn-primary" @click="handleLogin">
-              Login
-            </button>
+              <button type="submit" class="btn custom-btn w-100">
+                Login
+              </button>
+            </form>
 
             <p class="text-center mt-4 mb-0 custom-text-secondary">
               Don't have an account?
@@ -78,18 +94,18 @@ const handleLogin = () => {
   border-color: #B79C8C;
 }
 
-.custom-btn-primary {
+.custom-btn {
   background-color: #1B3B36;
   color: #FFFFFF;
-  font-weight: 600;
   padding: 0.75rem;
   border-radius: 8px;
+  font-weight: 500;
   border: none;
-  transition: all 0.3s ease;
 }
 
-.custom-btn-primary:hover {
-  background-color: #142d29;
+.custom-btn:hover {
+  background-color: #132A27;
+  color: #FFFFFF;
 }
 
 .custom-text-secondary {

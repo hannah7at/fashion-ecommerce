@@ -3,7 +3,6 @@ import { ref } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useRouter } from 'vue-router'
 
-// البيانات الشخصية للمستخدم
 const fullName = ref('')
 const email = ref('')
 const phone = ref('')
@@ -13,7 +12,6 @@ const confirmPassword = ref('')
 const auth = useAuthStore()
 const router = useRouter()
 
-// الدالة المسؤولة عن إنشاء حساب بالبيانات
 const handleRegister = () => {
   if (password.value !== confirmPassword.value) {
     alert('كلمات المرور غير متطابقة!')
@@ -40,44 +38,38 @@ const handleRegister = () => {
     <div class="container">
       <div class="row justify-content-center align-items-center">
         
-        <!-- قسم الصورة -->
+        <!-- الصورة -->
         <div class="col-md-6 d-none d-md-block text-center p-3">
           <img src="/register.jpeg" alt="Register Illustration" class="img-fluid custom-image" />
         </div>
 
-        <!-- قسم كارت التسجيل -->
+        <!-- الكارت -->
         <div class="col-md-6 col-lg-5">
           <div class="card shadow p-4 p-md-5 border-0 custom-card">
             <h3 class="text-center mb-4 custom-title">Create Account</h3>
 
             <form @submit.prevent="handleRegister">
-              <!-- الاسم الكامل -->
               <div class="mb-3">
                 <input v-model="fullName" type="text" class="form-control custom-input" placeholder="Full Name" required />
               </div>
 
-              <!-- البريد الإلكتروني -->
               <div class="mb-3">
                 <input v-model="email" type="email" class="form-control custom-input" placeholder="Email Address" required />
               </div>
 
-              <!-- رقم الهاتف -->
               <div class="mb-3">
                 <input v-model="phone" type="tel" class="form-control custom-input" placeholder="Phone Number" required />
               </div>
 
-              <!-- كلمة المرور -->
               <div class="mb-3">
                 <input v-model="password" type="password" class="form-control custom-input" placeholder="Password" required />
               </div>
 
-              <!-- تأكيد كلمة المرور -->
               <div class="mb-4">
                 <input v-model="confirmPassword" type="password" class="form-control custom-input" placeholder="Confirm Password" required />
               </div>
 
-              <!-- زر التسجيل -->
-              <button type="submit" class="btn w-100 custom-btn-primary">
+              <button type="submit" class="btn custom-btn w-100">
                 Create Account
               </button>
             </form>
@@ -120,18 +112,18 @@ const handleRegister = () => {
   border-color: #B79C8C;
 }
 
-.custom-btn-primary {
+.custom-btn {
   background-color: #1B3B36;
   color: #FFFFFF;
-  font-weight: 600;
   padding: 0.75rem;
   border-radius: 8px;
+  font-weight: 500;
   border: none;
-  transition: all 0.3s ease;
 }
 
-.custom-btn-primary:hover {
-  background-color: #142d29;
+.custom-btn:hover {
+  background-color: #132A27;
+  color: #FFFFFF;
 }
 
 .custom-text-secondary {
