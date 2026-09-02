@@ -1,37 +1,47 @@
 import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
 
-export const useCartStore = defineStore('cart', {
-  state: () => ({
-    items: []
-  }),
+export const useCartStore = defineStore('cart', () => {
+  const items = ref([])
 
-  getters: {
-    totalPrice: (state) =>
-      state.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  },
+  const totalPrice = computed(() => {
+    return items.value.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  })
 
-  actions: {
-    addToCart(product) {
-      const item = this.items.find(i => i.id === product.id)
+  const totalItemsCount = computed(() => {
+    return items.value.reduce((sum, item) => sum + item.quantity, 0)
+  })
 
-      if (item) {
-        item.quantity++
-      } else {
-        this.items.push({ ...product, quantity: 1 })
-      }
-    },
-
-    removeFromCart(id) {
-      this.items = this.items.filter(i => i.id !== id)
-    },
-
-    updateQuantity(id, qty) {
-      const item = this.items.find(i => i.id === id)
-      if (item && qty > 0) item.quantity = qty
-    },
-
-    clearCart() {
-      this.items = []
+  function addToCart(product) {
+    const existingItem = items.value.find((item) => item.id === product.id)
+    if (existingItem) {
+      existingItem.quantity++
+    } else {
+      items.value.push({ ...product, quantity: 1 })
     }
+  }
+
+  function removeFromCart(productId) {
+    items.value = items.value.filter((item) => item.id !== productId)
+  }
+
+  function updateQuantity(productId, quantity) {
+    const item = items.value.find((item) => item.id === productId)
+    if (item) {
+      if (quantity <= 0) {
+        removeFromCart(productId)
+      } else {
+        item.quantity = quantity
+      }
+    }
+  }
+
+  return {
+    items,
+    totalPrice,
+    totalItemsCount,
+    addToCart,
+    removeFromCart,
+    updateQuantity
   }
 })
