@@ -1,5 +1,10 @@
 <script setup>
-import { computed, ref } from 'vue'
+import {
+  computed,
+  ref,
+  watch,
+} from 'vue'
+
 import ProductCard from './ProductCard.vue'
 import useOutfitEngine from './useOutfitEngine.js'
 
@@ -10,49 +15,300 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['add-to-cart', 'toggle-favorite'])
+const emit = defineEmits([
+  'add-to-cart',
+  'toggle-favorite'
+])
+
+/* ================================
+   STATE
+================================ */
 
 const showDetails = ref(true)
+
 const favorites = ref([])
-const addingProductId = ref(null)
 
-const recommendations = computed(() => {
-  if (!props.product) return []
+const addingProductId =
+  ref(null)
 
-  const result = useOutfitEngine(props.product)
+const lookNumber = ref(0)
 
-  return Object.values(result.outfit)
-})
+const excludedIds = ref([])
 
-const recommendationCount = computed(() => recommendations.value.length)
+/*
+ * Products that the user wants
+ * to keep when generating another look.
+ */
+const lockedIds = ref([])
 
-const isFavorite = (product) => {
-  return favorites.value.includes(product.id)
+/* ================================
+   RECOMMENDATIONS
+================================ */
+
+const recommendations =
+  computed(() => {
+    if (!props.product) {
+      return []
+    }
+
+    const result =
+      useOutfitEngine(
+        props.product,
+        excludedIds.value,
+        lookNumber.value,
+        lockedIds.value
+      )
+
+    return Object.values(
+      result.outfit
+    )
+  })
+
+/* ================================
+   COUNT
+================================ */
+
+const recommendationCount =
+  computed(() => {
+    return recommendations.value.length
+  })
+
+/* ================================
+   LOCKED COUNT
+================================ */
+
+const lockedCount =
+  computed(() => {
+    return recommendations.value.filter(
+      (product) =>
+        lockedIds.value.includes(
+          product.id
+        )
+    ).length
+  })
+
+/* ================================
+   ALL LOCKED
+================================ */
+
+const allRecommendationsLocked =
+  computed(() => {
+    return (
+      recommendationCount.value >
+        0 &&
+      lockedCount.value ===
+        recommendationCount.value
+    )
+  })
+
+/* ================================
+   FAVORITE
+================================ */
+
+const isFavorite = (
+  product
+) => {
+  return favorites.value.includes(
+    product.id
+  )
 }
 
-function toggleFavorite(product) {
-  if (favorites.value.includes(product.id)) {
-    favorites.value = favorites.value.filter(id => id !== product.id)
+function toggleFavorite(
+  product
+) {
+  if (
+    favorites.value.includes(
+      product.id
+    )
+  ) {
+    favorites.value =
+      favorites.value.filter(
+        (id) =>
+          id !== product.id
+      )
   } else {
-    favorites.value.push(product.id)
+    favorites.value.push(
+      product.id
+    )
   }
 
-  emit('toggle-favorite', product)
+  emit(
+    'toggle-favorite',
+    product
+  )
 }
 
-function addToCart(product) {
-  addingProductId.value = product.id
+/* ================================
+   ADD TO CART
+================================ */
 
-  emit('add-to-cart', product)
+function addToCart(
+  product
+) {
+  addingProductId.value =
+    product.id
+
+  emit(
+    'add-to-cart',
+    product
+  )
 
   setTimeout(() => {
-    addingProductId.value = null
+    addingProductId.value =
+      null
   }, 700)
 }
+
+/* ================================
+   LOCK / UNLOCK
+================================ */
+
+const isLocked = (
+  product
+) => {
+  return lockedIds.value.includes(
+    product.id
+  )
+}
+
+function toggleLock(
+  product
+) {
+  if (
+    lockedIds.value.includes(
+      product.id
+    )
+  ) {
+    lockedIds.value =
+      lockedIds.value.filter(
+        (id) =>
+          id !== product.id
+      )
+
+    return
+  }
+
+  lockedIds.value.push(
+    product.id
+  )
+}
+
+/* ================================
+   ADD COMPLETE LOOK
+================================ */
+
+function addCompleteLook() {
+  if (!props.product) {
+    return
+  }
+
+  /*
+   * Add the selected base product.
+   */
+  emit(
+    'add-to-cart',
+    props.product
+  )
+
+  /*
+   * Add every recommended
+   * piece in the current look.
+   */
+  recommendations.value.forEach(
+    (product) => {
+      emit(
+        'add-to-cart',
+        product
+      )
+    }
+  )
+}
+
+/* ================================
+   ANOTHER LOOK
+================================ */
+
+function showAnotherLook() {
+  /*
+   * Don't generate another look
+   * when everything is locked.
+   */
+  if (
+    allRecommendationsLocked.value
+  ) {
+    return
+  }
+
+  /*
+   * Exclude ONLY unlocked products.
+   *
+   * Locked products stay available
+   * and the engine will keep them.
+   */
+  recommendations.value.forEach(
+    (product) => {
+      if (
+        !lockedIds.value.includes(
+          product.id
+        ) &&
+        !excludedIds.value.includes(
+          product.id
+        )
+      ) {
+        excludedIds.value.push(
+          product.id
+        )
+      }
+    }
+  )
+
+  /*
+   * Increase variation.
+   */
+  lookNumber.value++
+
+  /*
+   * If there are no more products,
+   * start over.
+   *
+   * Keep locked products.
+   */
+  if (lookNumber.value > 10) {
+    lookNumber.value = 0
+
+    /*
+     * Keep only locked IDs
+     * in the exclusion list.
+     */
+    excludedIds.value =
+      excludedIds.value.filter(
+        (id) =>
+          lockedIds.value.includes(
+            id
+          )
+      )
+  }
+}
+
+/* ================================
+   RESET WHEN BASE PRODUCT CHANGES
+================================ */
+
+watch(
+  () => props.product?.id,
+  () => {
+    lookNumber.value = 0
+    excludedIds.value = []
+    lockedIds.value = []
+  }
+)
 </script>
 
 <template>
-  <section v-if="props.product" class="stylist-section">
+  <section
+    v-if="props.product"
+    class="stylist-section"
+  >
     <div class="stylist-container">
 
       <!-- HEADER -->
@@ -73,8 +329,9 @@ function addToCart(product) {
         </h2>
 
         <p>
-          Discover carefully selected pieces that complement
-          your style and complete your outfit.
+          Discover carefully selected pieces
+          that complement your style and
+          complete your outfit.
         </p>
       </header>
 
@@ -98,8 +355,13 @@ function addToCart(product) {
           </span>
 
           <div class="image-caption">
-            <span>SELECTED PIECE</span>
-            <strong>{{ props.product.name }}</strong>
+            <span>
+              SELECTED PIECE
+            </span>
+
+            <strong>
+              {{ props.product.name }}
+            </strong>
           </div>
         </div>
 
@@ -123,11 +385,23 @@ function addToCart(product) {
             <button
               class="details-button"
               type="button"
-              @click="showDetails = !showDetails"
+              @click="
+                showDetails =
+                  !showDetails
+              "
             >
-              {{ showDetails ? 'Hide Details' : 'View Details' }}
+              {{
+                showDetails
+                  ? 'Hide Details'
+                  : 'View Details'
+              }}
+
               <span>
-                {{ showDetails ? '−' : '+' }}
+                {{
+                  showDetails
+                    ? '−'
+                    : '+'
+                }}
               </span>
             </button>
           </div>
@@ -137,45 +411,69 @@ function addToCart(product) {
           </h3>
 
           <p class="selected-description">
-            A versatile piece chosen as the foundation
-            of your personalized look.
+            A versatile piece chosen as
+            the foundation of your
+            personalized look.
           </p>
 
-          <!-- DETAILS -->
           <div
             v-if="showDetails"
             class="product-details"
           >
-
             <div class="detail-item">
-              <span>STYLE</span>
+              <span>
+                STYLE
+              </span>
+
               <strong>
-                {{ props.product.style || '—' }}
+                {{
+                  props.product.style ||
+                  '—'
+                }}
               </strong>
             </div>
 
             <div class="detail-item">
-              <span>CATEGORY</span>
+              <span>
+                CATEGORY
+              </span>
+
               <strong>
-                {{ props.product.category || '—' }}
+                {{
+                  props.product.category ||
+                  '—'
+                }}
               </strong>
             </div>
 
             <div class="detail-item">
-              <span>COLOR</span>
+              <span>
+                COLOR
+              </span>
+
               <strong>
-                {{ props.product.color || '—' }}
+                {{
+                  props.product.color ||
+                  '—'
+                }}
               </strong>
             </div>
-
           </div>
 
           <div class="selected-price">
-            <span>PRICE</span>
+            <span>
+              PRICE
+            </span>
 
             <strong>
               {{ props.product.price }}
-              <small>EGP</small>
+
+              <small>
+                {{
+                  props.product.currency ||
+                  'USD'
+                }}
+              </small>
             </strong>
           </div>
 
@@ -185,11 +483,14 @@ function addToCart(product) {
             </div>
 
             <div>
-              <span>OUR STYLIST SAYS</span>
+              <span>
+                OUR STYLIST SAYS
+              </span>
 
               <p>
-                This piece creates the perfect base
-                for building a polished outfit.
+                This piece creates the
+                perfect base for building
+                a polished outfit.
               </p>
             </div>
           </div>
@@ -199,17 +500,25 @@ function addToCart(product) {
 
       <!-- CONNECTION -->
       <div class="connection">
-        <span class="connection-line"></span>
+        <span
+          class="connection-line"
+        ></span>
 
-        <div class="connection-circle">
+        <div
+          class="connection-circle"
+        >
           +
         </div>
 
-        <span class="connection-line"></span>
+        <span
+          class="connection-line"
+        ></span>
       </div>
 
-      <!-- RECOMMENDATIONS HEADER -->
-      <section class="recommendation-header">
+      <!-- RECOMMENDATION HEADER -->
+      <section
+        class="recommendation-header"
+      >
 
         <div>
           <span class="eyebrow">
@@ -223,39 +532,83 @@ function addToCart(product) {
           </h3>
 
           <p>
-            Handpicked based on your selected piece,
-            style and color.
+            Handpicked based on your
+            selected piece, style,
+            color and pattern.
           </p>
         </div>
 
-        <div class="recommendation-count">
-          <strong>
-            {{ recommendationCount }}
-          </strong>
+        <div
+          class="recommendation-actions"
+        >
 
-          <span>
-            MATCHED<br />
-            PIECES
-          </span>
+          <div
+            class="recommendation-count"
+          >
+            <strong>
+              {{ recommendationCount }}
+            </strong>
+
+            <span>
+              MATCHED
+              <br />
+              PIECES
+            </span>
+          </div>
+
+          <button
+            class="another-look-button"
+            type="button"
+            :disabled="
+              allRecommendationsLocked
+            "
+            @click="
+              showAnotherLook
+            "
+          >
+            <span>
+              ✦
+            </span>
+
+            {{
+              allRecommendationsLocked
+                ? 'All Items Kept'
+                : 'Show Me Another Look'
+            }}
+          </button>
+
         </div>
-
       </section>
 
       <!-- RECOMMENDATIONS -->
       <div
-        v-if="recommendations.length"
+        v-if="
+          recommendations.length
+        "
         class="recommendations"
       >
 
         <article
-          v-for="(recommendedProduct, index) in recommendations"
-          :key="recommendedProduct.id"
+          v-for="(
+            recommendedProduct,
+            index
+          ) in recommendations"
+          :key="
+            recommendedProduct.id
+          "
           class="recommendation-item"
         >
 
           <div class="item-label">
             <span>
-              {{ String(index + 2).padStart(2, '0') }}
+              {{
+                String(
+                  index + 2
+                ).padStart(
+                  2,
+                  '0'
+                )
+              }}
             </span>
 
             <div></div>
@@ -265,11 +618,65 @@ function addToCart(product) {
             </small>
           </div>
 
+          <!-- KEEP BUTTON -->
+          <button
+            type="button"
+            class="keep-item-button"
+            :class="{
+              locked: isLocked(
+                recommendedProduct
+              )
+            }"
+            @click="
+              toggleLock(
+                recommendedProduct
+              )
+            "
+          >
+            <span>
+              {{
+                isLocked(
+                  recommendedProduct
+                )
+                  ? '✓'
+                  : '🔒'
+              }}
+            </span>
+
+            {{
+              isLocked(
+                recommendedProduct
+              )
+                ? 'Kept'
+                : 'Keep this item'
+            }}
+          </button>
+
+          <!-- LOCKED BADGE -->
+          <div
+            v-if="
+              isLocked(
+                recommendedProduct
+              )
+            "
+            class="locked-badge"
+          >
+            <span>🔒</span>
+            KEEPING THIS PIECE
+          </div>
+
           <ProductCard
-            :product="recommendedProduct"
-            :is-favorite="isFavorite(recommendedProduct)"
+            :product="
+              recommendedProduct
+            "
+            :is-favorite="
+              isFavorite(
+                recommendedProduct
+              )
+            "
             :adding-to-cart="
-              addingProductId === recommendedProduct.id
+              addingProductId ===
+              recommendedProduct.id
             "
             @toggle-favorite="
               toggleFavorite
@@ -283,7 +690,7 @@ function addToCart(product) {
 
       </div>
 
-      <!-- EMPTY STATE -->
+      <!-- EMPTY -->
       <div
         v-else
         class="empty-state"
@@ -293,19 +700,67 @@ function addToCart(product) {
         </div>
 
         <h3>
-          Your next look is still being styled
+          Your next look is still
+          being styled
         </h3>
 
         <p>
-          We couldn't find matching pieces for
-          this selection yet.
+          We couldn't find matching
+          pieces for this selection yet.
         </p>
       </div>
 
-      <!-- STYLE SUMMARY -->
-      <section class="style-summary">
+      <!-- COMPLETE LOOK ACTION -->
+      <section
+        v-if="
+          recommendations.length
+        "
+        class="complete-look-section"
+      >
 
-        <div class="summary-header">
+        <div class="complete-look-content">
+
+          <div>
+            <span class="eyebrow">
+              LOVE THE WHOLE LOOK?
+            </span>
+
+            <h3>
+              Add the
+              <em>complete outfit</em>
+              to your cart
+            </h3>
+
+            <p>
+              Your selected piece plus all
+              {{ recommendationCount }}
+              curated pieces.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            class="complete-look-button"
+            @click="
+              addCompleteLook
+            "
+          >
+            <span>✦</span>
+            Add Complete Look
+          </button>
+
+        </div>
+
+      </section>
+
+      <!-- STYLE SUMMARY -->
+      <section
+        class="style-summary"
+      >
+
+        <div
+          class="summary-header"
+        >
           <div>
             <span class="eyebrow">
               STYLE SUMMARY
@@ -317,47 +772,78 @@ function addToCart(product) {
             </h3>
           </div>
 
-          <span class="summary-icon">
+          <span
+            class="summary-icon"
+          >
             ✦
           </span>
         </div>
 
         <div class="summary-grid">
 
-          <div class="summary-item">
-            <span>BASE PIECE</span>
+          <div
+            class="summary-item"
+          >
+            <span>
+              BASE PIECE
+            </span>
+
             <strong>
-              {{ props.product.name }}
+              {{
+                props.product.name
+              }}
             </strong>
           </div>
 
-          <div class="summary-item">
-            <span>STYLE</span>
+          <div
+            class="summary-item"
+          >
+            <span>
+              STYLE
+            </span>
+
             <strong>
-              {{ props.product.style || 'Modern' }}
+              {{
+                props.product.style ||
+                'Modern'
+              }}
             </strong>
           </div>
 
-          <div class="summary-item">
-            <span>COLOR PALETTE</span>
+          <div
+            class="summary-item"
+          >
+            <span>
+              COLOR PALETTE
+            </span>
+
             <strong>
-              {{ props.product.color || 'Neutral' }}
+              {{
+                props.product.color ||
+                'Neutral'
+              }}
             </strong>
           </div>
 
-          <div class="summary-item">
-            <span>CURATED PIECES</span>
+          <div
+            class="summary-item"
+          >
+            <span>
+              CURATED PIECES
+            </span>
+
             <strong>
               {{ recommendationCount }}
             </strong>
           </div>
 
         </div>
-
       </section>
 
       <!-- FOOTER -->
-      <footer class="stylist-footer">
+      <footer
+        class="stylist-footer"
+      >
         <span>
           PERSONALIZED STYLE
         </span>
@@ -365,7 +851,8 @@ function addToCart(product) {
         <div></div>
 
         <span>
-          CURATED WITH YOUR LOOK IN MIND
+          CURATED WITH YOUR LOOK
+          IN MIND
         </span>
 
         <div></div>
@@ -386,7 +873,12 @@ function addToCart(product) {
   background:
     radial-gradient(
       circle at 10% 10%,
-      rgba(235, 214, 207, 0.35),
+      rgba(
+        235,
+        214,
+        207,
+        0.35
+      ),
       transparent 28%
     ),
     var(--color-beige);
@@ -397,8 +889,6 @@ function addToCart(product) {
   max-width: 1126px;
   margin: 0 auto;
 }
-
-/* HEADER */
 
 .stylist-heading {
   max-width: 720px;
@@ -446,7 +936,8 @@ function addToCart(product) {
 
 .stylist-heading h2 em,
 .recommendation-header h3 em,
-.style-summary h3 em {
+.style-summary h3 em,
+.complete-look-content h3 em {
   color: var(--color-primary);
   font-family: Georgia, serif;
   font-weight: 400;
@@ -460,17 +951,25 @@ function addToCart(product) {
   line-height: 1.7;
 }
 
-/* SELECTED LOOK */
-
 .selected-look {
   display: grid;
   grid-template-columns: 0.95fr 1.05fr;
   min-height: 500px;
   overflow: hidden;
   background: var(--color-white);
-  border: 1px solid rgba(183, 156, 140, 0.2);
+  border: 1px solid rgba(
+    183,
+    156,
+    140,
+    0.2
+  );
   border-radius: var(--radius-lg);
-  box-shadow: 0 18px 45px rgba(27, 59, 54, 0.09);
+  box-shadow: 0 18px 45px rgba(
+    27,
+    59,
+    54,
+    0.09
+  );
 }
 
 .selected-image {
@@ -487,7 +986,8 @@ function addToCart(product) {
   transition: transform 0.5s ease;
 }
 
-.selected-look:hover .selected-image img {
+.selected-look:hover
+.selected-image img {
   transform: scale(1.025);
 }
 
@@ -543,8 +1043,6 @@ function addToCart(product) {
   font-weight: 500;
 }
 
-/* SELECTED INFO */
-
 .selected-info {
   display: flex;
   flex-direction: column;
@@ -577,7 +1075,12 @@ function addToCart(product) {
 }
 
 .details-button {
-  border: 1px solid rgba(183, 156, 140, 0.4);
+  border: 1px solid rgba(
+    183,
+    156,
+    140,
+    0.4
+  );
   border-radius: var(--radius-pill);
   padding: 7px 12px;
   background: transparent;
@@ -605,8 +1108,6 @@ function addToCart(product) {
   font-size: 14px;
   line-height: 1.7;
 }
-
-/* DETAILS */
 
 .product-details {
   display: grid;
@@ -642,8 +1143,6 @@ function addToCart(product) {
   font-weight: 500;
 }
 
-/* PRICE */
-
 .selected-price {
   display: flex;
   align-items: center;
@@ -666,8 +1165,6 @@ function addToCart(product) {
   font-size: 12px;
   font-weight: 500;
 }
-
-/* MESSAGE */
 
 .stylist-message {
   display: flex;
@@ -699,8 +1196,6 @@ function addToCart(product) {
   line-height: 1.5;
 }
 
-/* CONNECTION */
-
 .connection {
   display: flex;
   align-items: center;
@@ -712,7 +1207,12 @@ function addToCart(product) {
 .connection-line {
   width: 80px;
   height: 1px;
-  background: rgba(183, 156, 140, 0.5);
+  background: rgba(
+    183,
+    156,
+    140,
+    0.5
+  );
 }
 
 .connection-circle {
@@ -727,8 +1227,6 @@ function addToCart(product) {
   font-family: Georgia, serif;
   font-size: 20px;
 }
-
-/* RECOMMENDATION HEADER */
 
 .recommendation-header {
   display: flex;
@@ -748,6 +1246,12 @@ function addToCart(product) {
 .recommendation-header p {
   color: #777;
   font-size: 13px;
+}
+
+.recommendation-actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
 }
 
 .recommendation-count {
@@ -774,7 +1278,56 @@ function addToCart(product) {
   line-height: 1.5;
 }
 
-/* RECOMMENDATIONS */
+.another-look-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 10px 16px;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-pill);
+  background: var(--color-white);
+  color: var(--color-primary);
+  font-family: var(--font-family-base);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.another-look-button span {
+  color: var(--color-sand);
+  font-size: 15px;
+}
+
+.another-look-button:hover:not(
+  :disabled
+) {
+  background: var(--color-primary);
+  color: var(--color-white);
+  transform: translateY(-1px);
+}
+
+.another-look-button:hover:not(
+  :disabled
+) span {
+  color: var(--color-pink-light);
+}
+
+.another-look-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: #f5f2f0;
+}
+
+/* ================================= */
+/* RECOMMENDATIONS                    */
+/* ================================= */
 
 .recommendations {
   display: grid;
@@ -802,7 +1355,12 @@ function addToCart(product) {
 .item-label div {
   flex: 1;
   height: 1px;
-  background: rgba(183, 156, 140, 0.3);
+  background: rgba(
+    183,
+    156,
+    140,
+    0.3
+  );
 }
 
 .item-label small {
@@ -811,12 +1369,83 @@ function addToCart(product) {
   letter-spacing: 1px;
 }
 
-/* EMPTY */
+/* ================================= */
+/* KEEP ITEM                          */
+/* ================================= */
+
+.keep-item-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  min-height: 38px;
+  margin-bottom: 10px;
+  padding: 8px 14px;
+  border: 1px solid rgba(
+    183,
+    156,
+    140,
+    0.45
+  );
+  border-radius: var(--radius-pill);
+  background: var(--color-white);
+  color: var(--color-primary);
+  font-family: var(--font-family-base);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.keep-item-button:hover {
+  transform: translateY(-1px);
+  border-color: var(--color-primary);
+}
+
+.keep-item-button.locked {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-white);
+}
+
+.keep-item-button span {
+  font-size: 13px;
+}
+
+.locked-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  color: var(--color-sand);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 1.3px;
+}
+
+.locked-badge span {
+  font-size: 11px;
+}
+
+/* ================================= */
+/* EMPTY                              */
+/* ================================= */
 
 .empty-state {
   padding: 70px 20px;
   text-align: center;
-  border: 1px dashed rgba(183, 156, 140, 0.5);
+  border: 1px dashed rgba(
+    183,
+    156,
+    140,
+    0.5
+  );
   border-radius: var(--radius-lg);
 }
 
@@ -837,12 +1466,98 @@ function addToCart(product) {
   font-size: 13px;
 }
 
-/* STYLE SUMMARY */
+/* ================================= */
+/* COMPLETE LOOK                      */
+/* ================================= */
+
+.complete-look-section {
+  margin-top: 42px;
+  padding: 28px 30px;
+  border: 1px solid rgba(
+    183,
+    156,
+    140,
+    0.28
+  );
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(
+      135deg,
+      var(--color-white),
+      var(--color-beige)
+    );
+}
+
+.complete-look-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+}
+
+.complete-look-content h3 {
+  margin: 7px 0;
+  color: var(--color-gray);
+  font-size: 23px;
+  font-weight: 600;
+}
+
+.complete-look-content p {
+  color: #777;
+  font-size: 12px;
+}
+
+.complete-look-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-width: 205px;
+  min-height: 46px;
+  padding: 11px 20px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+  color: var(--color-white);
+  font-family: var(--font-family-base);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.complete-look-button:hover {
+  background: var(--color-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(
+    27,
+    59,
+    54,
+    0.16
+  );
+}
+
+.complete-look-button span {
+  color: var(--color-pink-light);
+  font-size: 15px;
+}
+
+/* ================================= */
+/* SUMMARY                            */
+/* ================================= */
 
 .style-summary {
   margin-top: 60px;
   padding: 30px;
-  border: 1px solid rgba(183, 156, 140, 0.25);
+  border: 1px solid rgba(
+    183,
+    156,
+    140,
+    0.25
+  );
   border-radius: var(--radius-lg);
   background: var(--color-white);
 }
@@ -880,7 +1595,9 @@ function addToCart(product) {
   border-right: none;
 }
 
-/* FOOTER */
+/* ================================= */
+/* FOOTER                             */
+/* ================================= */
 
 .stylist-footer {
   display: flex;
@@ -896,10 +1613,17 @@ function addToCart(product) {
 .stylist-footer div {
   flex: 1;
   height: 1px;
-  background: rgba(183, 156, 140, 0.3);
+  background: rgba(
+    183,
+    156,
+    140,
+    0.3
+  );
 }
 
-/* RESPONSIVE */
+/* ================================= */
+/* RESPONSIVE                         */
+/* ================================= */
 
 @media (max-width: 900px) {
   .selected-look {
@@ -924,6 +1648,20 @@ function addToCart(product) {
 
   .summary-item:nth-child(2) {
     border-right: none;
+  }
+
+  .recommendation-actions {
+    flex-direction: column;
+    align-items: flex-end;
+  }
+
+  .complete-look-content {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .complete-look-button {
+    width: 100%;
   }
 }
 
@@ -968,6 +1706,20 @@ function addToCart(product) {
   .recommendation-header {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .recommendation-actions {
+    width: 100%;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .recommendation-count {
+    width: fit-content;
+  }
+
+  .another-look-button {
+    width: 100%;
   }
 
   .recommendations {

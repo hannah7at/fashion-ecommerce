@@ -1,11 +1,8 @@
 <script setup>
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
 import BaseButton from './common/Button.vue'
-
-/**
- * ProductCard - shared Product Card component
- * Supports favorites, discounts, ratings and add-to-cart.
- */
 
 const props = defineProps({
   product: {
@@ -28,6 +25,20 @@ const emit = defineEmits([
   'toggle-favorite',
   'add-to-cart'
 ])
+
+const router = useRouter()
+const authStore = useAuthStore()
+
+/*
+ * The real favorite state comes from Auth Store.
+ * The prop is kept for compatibility with existing pages.
+ */
+const favoriteState = computed(() => {
+  return (
+    props.isFavorite ||
+    authStore.isFavorite(props.product.id)
+  )
+})
 
 const hasOldPrice = computed(() => {
   return (
@@ -61,7 +72,20 @@ function formatPrice(value, currency = 'USD') {
   return `${value.toFixed(2)} ${currency}`
 }
 
-function handleFavorite() {
+function handleFavorite(event) {
+  event.preventDefault()
+  event.stopPropagation()
+
+  /*
+   * User must be logged in before using favorites.
+   */
+  if (!authStore.isLoggedIn) {
+    router.push('/login')
+    return
+  }
+
+  authStore.toggleFavorite(props.product.id)
+
   emit('toggle-favorite', props.product)
 }
 
@@ -78,15 +102,22 @@ function handleImageError(event) {
 
 <template>
   <article class="product-card">
+
     <!-- Product Image -->
     <div class="product-card__media">
-      <img
-        :src="product.image"
-        :alt="product.name"
-        class="product-card__image"
-        loading="lazy"
-        @error="handleImageError"
-      />
+
+      <router-link
+        :to="`/product/${product.id}`"
+        class="product-card__image-link"
+      >
+        <img
+          :src="product.image"
+          :alt="product.name"
+          class="product-card__image"
+          loading="lazy"
+          @error="handleImageError"
+        />
+      </router-link>
 
       <!-- Discount -->
       <span
@@ -98,37 +129,40 @@ function handleImageError(event) {
 
       <!-- Favorite -->
       <button
-        class="product-card__favorite"
-        :class="{ 'is-active': isFavorite }"
         type="button"
+        class="product-card__favorite"
+        :class="{ 'is-active': favoriteState }"
         :aria-label="
-          isFavorite
+          favoriteState
             ? 'Remove from favorites'
             : 'Add to favorites'
         "
-        :aria-pressed="isFavorite"
+        :aria-pressed="favoriteState"
         @click="handleFavorite"
       >
         <svg
-          width="18"
-          height="18"
+          width="20"
+          height="20"
           viewBox="0 0 24 24"
-          :fill="isFavorite ? 'currentColor' : 'none'"
+          :fill="favoriteState ? 'currentColor' : 'none'"
           aria-hidden="true"
         >
           <path
-            d="M12 21s-6.7-4.35-9.3-8.28C1 10.1 1.6 6.6 4.7 5.1c2.3-1.1 4.6-.2 5.9 1.5.5.6.9 1.2 1.4 1.9.5-.7.9-1.3-1.4-1.9 1.3-1.7 3.6-2.6 5.9-1.5 3.1 1.5 3.7 5 2 7.62C18.7 16.65 12 21 12 21z"
+            d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z"
             stroke="currentColor"
-            stroke-width="1.5"
+            stroke-width="1.8"
             stroke-linecap="round"
             stroke-linejoin="round"
           />
         </svg>
       </button>
+
     </div>
 
     <!-- Product Info -->
     <div class="product-card__body">
+
+      <!-- Brand -->
       <p
         v-if="product.brand"
         class="product-card__brand"
@@ -136,9 +170,13 @@ function handleImageError(event) {
         {{ product.brand }}
       </p>
 
-      <h4 class="product-card__name">
+      <!-- Product Name -->
+      <router-link
+        :to="`/product/${product.id}`"
+        class="product-card__name"
+      >
         {{ product.name }}
-      </h4>
+      </router-link>
 
       <!-- Rating -->
       <div
@@ -146,7 +184,9 @@ function handleImageError(event) {
         class="product-card__rating"
         aria-label="Product rating"
       >
-        <span class="product-card__star">★</span>
+        <span class="product-card__star">
+          ★
+        </span>
 
         <span>
           {{ Number(product.rating).toFixed(1) }}
@@ -162,6 +202,7 @@ function handleImageError(event) {
 
       <!-- Prices -->
       <div class="product-card__prices">
+
         <span class="product-card__price">
           {{ formatPrice(product.price, product.currency) }}
         </span>
@@ -172,6 +213,7 @@ function handleImageError(event) {
         >
           {{ formatPrice(product.oldPrice, product.currency) }}
         </span>
+
       </div>
 
       <!-- Add to Cart -->
@@ -184,7 +226,9 @@ function handleImageError(event) {
       >
         Add to Cart
       </BaseButton>
+
     </div>
+
   </article>
 </template>
 
@@ -193,7 +237,7 @@ function handleImageError(event) {
   position: relative;
   overflow: hidden;
   background-color: var(--color-white);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-default);
   box-shadow: 0 4px 16px rgba(27, 59, 54, 0.06);
   font-family: var(--font-family-base);
   transition:
@@ -213,50 +257,103 @@ function handleImageError(event) {
   overflow: hidden;
 }
 
+.product-card__image-link {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
 .product-card__image {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.product-card__image-link:hover .product-card__image {
+  transform: scale(1.03);
 }
 
 .product-card__badge {
   position: absolute;
   top: var(--space-3);
   left: var(--space-3);
+  z-index: 5;
   padding: 4px 8px;
   background-color: var(--color-primary);
   color: var(--color-white);
   font-size: 12px;
   font-weight: 600;
   border-radius: var(--radius-pill);
+  pointer-events: none;
 }
 
 .product-card__favorite {
   position: absolute;
   top: var(--space-3);
   right: var(--space-3);
-  width: 36px;
-  height: 36px;
+  z-index: 20;
+
+  width: 40px;
+  height: 40px;
+
   display: flex;
   align-items: center;
   justify-content: center;
-  border: none;
+
+  padding: 0;
+
+  border: 1px solid rgba(27, 59, 54, 0.1);
   border-radius: 50%;
+
   background-color: var(--color-white);
   color: var(--color-sand);
+
   cursor: pointer;
+  pointer-events: auto;
+
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+
   transition:
     color 0.2s ease,
-    transform 0.15s ease;
+    background-color 0.2s ease,
+    transform 0.15s ease,
+    box-shadow 0.2s ease;
+}
+
+.product-card__favorite svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
+  transition:
+    fill 0.2s ease,
+    transform 0.2s ease;
 }
 
 .product-card__favorite:hover {
+  color: var(--color-primary);
+  background-color: var(--color-beige);
   transform: scale(1.08);
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.12);
+}
+
+.product-card__favorite:active {
+  transform: scale(0.92);
 }
 
 .product-card__favorite.is-active {
   color: #c0435a;
+  background-color: #fff5f6;
+}
+
+.product-card__favorite.is-active svg {
+  transform: scale(1.05);
 }
 
 .product-card__body {
@@ -287,6 +384,13 @@ function handleImageError(event) {
   -webkit-box-orient: vertical;
   overflow: hidden;
   min-height: 2.6em;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.product-card__name:hover {
+  color: var(--color-primary);
 }
 
 .product-card__rating {
@@ -325,4 +429,3 @@ function handleImageError(event) {
   text-decoration: line-through;
 }
 </style>
-
