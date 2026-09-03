@@ -1,5 +1,10 @@
 <script setup>
-import { computed, ref } from 'vue'
+import {
+  computed,
+  ref,
+  onBeforeUnmount
+} from 'vue'
+
 import { useRoute, useRouter } from 'vue-router'
 import { useCartStore } from '../stores/cart'
 import OutfitSuggestion from '../components/OutfitSuggestion.vue'
@@ -19,7 +24,48 @@ const product = computed(() => {
 
 const selectedSize = ref('')
 const quantity = ref(1)
-const addedMessage = ref(false)
+
+/* =========================
+   SIZE ERROR
+========================= */
+
+const sizeError = ref(false)
+
+/* =========================
+   CART TOAST
+========================= */
+
+const showCartToast = ref(false)
+const toastTitle = ref('')
+const toastMessage = ref('')
+let toastTimer = null
+
+function showToast(title, message) {
+  toastTitle.value = title
+  toastMessage.value = message
+  showCartToast.value = true
+
+  if (toastTimer) {
+    clearTimeout(toastTimer)
+  }
+
+  toastTimer = setTimeout(() => {
+    showCartToast.value = false
+  }, 3000)
+}
+
+function closeToast() {
+  showCartToast.value = false
+
+  if (toastTimer) {
+    clearTimeout(toastTimer)
+    toastTimer = null
+  }
+}
+
+/* =========================
+   QUANTITY
+========================= */
 
 function increaseQuantity() {
   quantity.value++
@@ -31,29 +77,125 @@ function decreaseQuantity() {
   }
 }
 
-function addToCart() {
-  if (!product.value) return
+/* =========================
+   SIZE
+========================= */
 
-  // If the product has sizes, require the user to select one
-  if (product.value.sizes?.length && !selectedSize.value) {
-    alert('Please select a size first.')
+function selectSize(size) {
+  selectedSize.value = size
+  sizeError.value = false
+}
+
+/* =========================
+   ADD TO CART
+========================= */
+
+function addToCart() {
+  if (!product.value) {
     return
   }
 
-  // Add the selected quantity
-  for (let i = 0; i < quantity.value; i++) {
+  /*
+   * Require size only when
+   * the product actually has sizes.
+   */
+  if (
+    product.value.sizes?.length &&
+    !selectedSize.value
+  ) {
+    sizeError.value = true
+
+    showToast(
+      'Size required',
+      'Please select a size before adding this product.'
+    )
+
+    return
+  }
+
+  /*
+   * Add selected quantity.
+   */
+  for (
+    let i = 0;
+    i < quantity.value;
+    i++
+  ) {
     cartStore.addToCart({
       ...product.value,
       selectedSize: selectedSize.value
     })
   }
 
-  addedMessage.value = true
-
-  setTimeout(() => {
-    addedMessage.value = false
-  }, 2500)
+  showToast(
+    'Added to cart',
+    `${product.value.name} has been added to your cart.`
+  )
 }
+
+/* =========================
+   OUTFIT ADD TO CART
+========================= */
+
+function handleOutfitAddToCart(productToAdd) {
+  if (!productToAdd) {
+    return
+  }
+
+  cartStore.addToCart(productToAdd)
+
+  showToast(
+    'Added to cart',
+    `${productToAdd.name} has been added to your cart.`
+  )
+}
+
+/* =========================
+   COMPLETE LOOK
+========================= */
+
+function handleCompleteLookAdded(lookData) {
+  if (!lookData) {
+    return
+  }
+
+  /*
+   * Add the base product.
+   */
+  if (lookData.baseProduct) {
+    cartStore.addToCart(
+      lookData.baseProduct
+    )
+  }
+
+  /*
+   * Add all recommended pieces.
+   */
+  if (Array.isArray(lookData.products)) {
+    lookData.products.forEach(
+      (recommendedProduct) => {
+        cartStore.addToCart(
+          recommendedProduct
+        )
+      }
+    )
+  }
+
+  const totalPieces =
+    1 +
+    (Array.isArray(lookData.products)
+      ? lookData.products.length
+      : 0)
+
+  showToast(
+    'Complete look added',
+    `${totalPieces} pieces have been added to your cart.`
+  )
+}
+
+/* =========================
+   NAVIGATION
+========================= */
 
 function goBack() {
   router.push('/')
@@ -62,6 +204,16 @@ function goBack() {
 function goToCart() {
   router.push('/cart')
 }
+
+/* =========================
+   CLEANUP
+========================= */
+
+onBeforeUnmount(() => {
+  if (toastTimer) {
+    clearTimeout(toastTimer)
+  }
+})
 </script>
 
 <template>
@@ -82,10 +234,13 @@ function goToCart() {
         v-if="!product"
         class="not-found"
       >
-        <h2>Product Not Found</h2>
+        <h2>
+          Product Not Found
+        </h2>
 
         <p>
-          The product you're looking for doesn't exist.
+          The product you're looking for
+          doesn't exist.
         </p>
 
         <button
@@ -134,7 +289,8 @@ function goToCart() {
               </strong>
 
               <span class="reviews">
-                ({{ product.reviewsCount }} reviews)
+                ({{ product.reviewsCount }}
+                reviews)
               </span>
 
             </div>
@@ -151,7 +307,9 @@ function goToCart() {
             <div class="details-list">
 
               <div class="detail-row">
-                <span>Brand</span>
+                <span>
+                  Brand
+                </span>
 
                 <strong>
                   {{ product.brand || '—' }}
@@ -159,7 +317,9 @@ function goToCart() {
               </div>
 
               <div class="detail-row">
-                <span>Color</span>
+                <span>
+                  Color
+                </span>
 
                 <strong>
                   {{ product.color || '—' }}
@@ -167,7 +327,9 @@ function goToCart() {
               </div>
 
               <div class="detail-row">
-                <span>Style</span>
+                <span>
+                  Style
+                </span>
 
                 <strong>
                   {{ product.style || '—' }}
@@ -175,7 +337,9 @@ function goToCart() {
               </div>
 
               <div class="detail-row">
-                <span>Gender</span>
+                <span>
+                  Gender
+                </span>
 
                 <strong>
                   {{ product.gender || '—' }}
@@ -188,6 +352,9 @@ function goToCart() {
             <div
               v-if="product.sizes?.length"
               class="size-section"
+              :class="{
+                'has-error': sizeError
+              }"
             >
 
               <div class="section-title">
@@ -211,14 +378,31 @@ function goToCart() {
                   type="button"
                   class="size-button"
                   :class="{
-                    active: selectedSize === size
+                    active:
+                      selectedSize === size
                   }"
-                  @click="selectedSize = size"
+                  @click="selectSize(size)"
                 >
                   {{ size }}
                 </button>
 
               </div>
+
+              <!-- SIZE ERROR -->
+              <Transition name="size-error">
+                <div
+                  v-if="sizeError"
+                  class="size-error-message"
+                >
+                  <span class="error-icon">
+                    !
+                  </span>
+
+                  <span>
+                    Please select a size first.
+                  </span>
+                </div>
+              </Transition>
 
             </div>
 
@@ -233,6 +417,7 @@ function goToCart() {
 
                 <button
                   type="button"
+                  aria-label="Decrease quantity"
                   @click="decreaseQuantity"
                 >
                   −
@@ -244,6 +429,7 @@ function goToCart() {
 
                 <button
                   type="button"
+                  aria-label="Increase quantity"
                   @click="increaseQuantity"
                 >
                   +
@@ -261,14 +447,6 @@ function goToCart() {
             >
               Add to Cart
             </button>
-
-            <!-- SUCCESS MESSAGE -->
-            <div
-              v-if="addedMessage"
-              class="success-message"
-            >
-              ✓ Product added to cart successfully!
-            </div>
 
             <!-- VIEW CART -->
             <button
@@ -289,23 +467,81 @@ function goToCart() {
 
         <OutfitSuggestion
           :product="product"
-          @add-to-cart="cartStore.addToCart"
+          @add-to-cart="handleOutfitAddToCart"
+          @complete-look-added="
+            handleCompleteLookAdded
+          "
         />
 
       </template>
 
     </div>
+
+    <!-- ================================= -->
+    <!-- CART TOAST -->
+    <!-- ================================= -->
+
+    <Transition name="cart-toast">
+
+      <div
+        v-if="showCartToast"
+        class="cart-toast"
+        role="status"
+        aria-live="polite"
+      >
+
+        <div class="toast-icon">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M20 6 9 17l-5-5" />
+          </svg>
+        </div>
+
+        <div class="toast-content">
+
+          <strong>
+            {{ toastTitle }}
+          </strong>
+
+          <span>
+            {{ toastMessage }}
+          </span>
+
+        </div>
+
+        <button
+          type="button"
+          class="toast-close"
+          aria-label="Close notification"
+          @click="closeToast"
+        >
+          ×
+        </button>
+
+      </div>
+
+    </Transition>
+
   </main>
 </template>
 
 <style scoped>
 .product-details-page {
+  position: relative;
   min-height: calc(100vh - 72px);
   background-color: var(--color-beige);
   padding: var(--space-8) 0 var(--space-16);
 }
 
-/* BACK BUTTON */
+/* =========================
+   BACK BUTTON
+========================= */
 
 .back-button {
   border: none;
@@ -315,13 +551,16 @@ function goToCart() {
   font-weight: 500;
   padding: 0;
   margin-bottom: var(--space-8);
+  cursor: pointer;
 }
 
 .back-button:hover {
   color: var(--color-primary-hover);
 }
 
-/* PRODUCT DETAILS */
+/* =========================
+   PRODUCT DETAILS
+========================= */
 
 .product-details {
   display: grid;
@@ -333,59 +572,70 @@ function goToCart() {
   align-items: start;
 }
 
-/* IMAGE */
+/* =========================
+   IMAGE
+========================= */
 
 .product-image-wrapper {
   width: 100%;
-  background-color: var(--color-white);
-  border-radius: var(--radius-card);
-  overflow: hidden;
-
   min-height: 550px;
 
   display: flex;
   align-items: center;
   justify-content: center;
+
+  overflow: hidden;
+
+  background-color: var(--color-white);
+
+  border-radius: var(--radius-card);
 }
 
 .product-image {
   width: 100%;
   height: 550px;
+
   object-fit: cover;
 }
 
-/* INFO */
+/* =========================
+   INFO
+========================= */
 
 .product-info {
-  background-color: var(--color-white);
-  border-radius: var(--radius-card);
   padding: var(--space-8);
+
+  background-color: var(--color-white);
+
+  border-radius: var(--radius-card);
 }
 
 .product-category {
   display: inline-block;
+
+  margin-bottom: var(--space-3);
 
   color: var(--color-sand);
 
   font-size: 13px;
   font-weight: 600;
 
-  text-transform: uppercase;
   letter-spacing: 0.08em;
-
-  margin-bottom: var(--space-3);
+  text-transform: uppercase;
 }
 
 .product-info h1 {
+  margin-bottom: var(--space-4);
+
   color: var(--color-primary);
 
   font-size: 30px;
   line-height: 1.3;
-
-  margin-bottom: var(--space-4);
 }
 
-/* RATING */
+/* =========================
+   RATING
+========================= */
 
 .rating {
   display: flex;
@@ -407,28 +657,34 @@ function goToCart() {
   color: #777;
 }
 
-/* PRICE */
+/* =========================
+   PRICE
+========================= */
 
 .price {
+  margin-bottom: var(--space-6);
+
   color: var(--color-primary);
 
   font-size: 26px;
   font-weight: 600;
-
-  margin-bottom: var(--space-6);
 }
 
-/* DIVIDER */
+/* =========================
+   DIVIDER
+========================= */
 
 .divider {
   height: 1px;
 
-  background-color: var(--color-pink-light);
-
   margin-bottom: var(--space-6);
+
+  background-color: var(--color-pink-light);
 }
 
-/* DETAILS LIST */
+/* =========================
+   DETAILS LIST
+========================= */
 
 .details-list {
   display: flex;
@@ -458,7 +714,9 @@ function goToCart() {
   text-transform: capitalize;
 }
 
-/* SIZE */
+/* =========================
+   SIZE
+========================= */
 
 .size-section {
   margin-bottom: var(--space-6);
@@ -466,13 +724,13 @@ function goToCart() {
 
 .section-title {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: var(--space-3);
 
   font-size: 15px;
   font-weight: 600;
-
-  margin-bottom: var(--space-3);
 }
 
 .selected-size {
@@ -501,22 +759,89 @@ function goToCart() {
 
   font-size: 14px;
 
-  transition: all 0.2s ease;
+  cursor: pointer;
+
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
 }
 
 .size-button:hover {
   border-color: var(--color-primary);
   color: var(--color-primary);
+  transform: translateY(-1px);
 }
 
 .size-button.active {
-  background-color: var(--color-primary);
   border-color: var(--color-primary);
-
+  background-color: var(--color-primary);
   color: var(--color-white);
 }
 
-/* QUANTITY */
+/* =========================
+   SIZE ERROR
+========================= */
+
+.size-error-message {
+  display: flex;
+  align-items: center;
+
+  gap: 9px;
+
+  margin-top: 10px;
+  padding: 10px 12px;
+
+  border: 1px solid rgba(183, 156, 140, 0.45);
+  border-radius: var(--radius-default);
+
+  background-color: var(--color-beige);
+  color: var(--color-primary);
+
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.error-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 20px;
+  height: 20px;
+
+  flex-shrink: 0;
+
+  border-radius: 50%;
+
+  background-color: var(--color-sand);
+  color: var(--color-white);
+
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* =========================
+   SIZE ERROR ANIMATION
+========================= */
+
+.size-error-enter-active,
+.size-error-leave-active {
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.size-error-enter-from,
+.size-error-leave-to {
+  opacity: 0;
+  transform: translateY(-5px);
+}
+
+/* =========================
+   QUANTITY
+========================= */
 
 .quantity-section {
   margin-bottom: var(--space-6);
@@ -528,10 +853,10 @@ function goToCart() {
   display: flex;
   align-items: center;
 
+  overflow: hidden;
+
   border: 1px solid var(--color-sand);
   border-radius: var(--radius-default);
-
-  overflow: hidden;
 }
 
 .quantity-control button {
@@ -544,6 +869,11 @@ function goToCart() {
   color: var(--color-primary);
 
   font-size: 20px;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease;
 }
 
 .quantity-control button:hover {
@@ -555,11 +885,15 @@ function goToCart() {
 
   text-align: center;
 
+  color: var(--color-gray);
+
   font-size: 15px;
   font-weight: 500;
 }
 
-/* ADD TO CART */
+/* =========================
+   ADD TO CART
+========================= */
 
 .add-button {
   width: 100%;
@@ -571,41 +905,40 @@ function goToCart() {
   background-color: var(--color-primary);
   color: var(--color-white);
 
+  font-family: var(--font-family-base);
   font-size: 15px;
   font-weight: 600;
 
-  transition: background-color 0.2s ease;
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .add-button:hover {
   background-color: var(--color-primary-hover);
+
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 8px 20px rgba(
+      27,
+      59,
+      54,
+      0.14
+    );
 }
 
-/* SUCCESS */
-
-.success-message {
-  margin-top: var(--space-3);
-
-  padding: var(--space-3);
-
-  border-radius: var(--radius-default);
-
-  background-color: var(--color-pink-light);
-  color: var(--color-primary);
-
-  text-align: center;
-
-  font-size: 14px;
-  font-weight: 500;
-}
-
-/* CART LINK */
+/* =========================
+   CART LINK
+========================= */
 
 .cart-link {
   width: 100%;
 
   margin-top: var(--space-3);
-
   padding: var(--space-3);
 
   border: none;
@@ -613,61 +946,217 @@ function goToCart() {
   background: transparent;
   color: var(--color-primary);
 
+  font-family: var(--font-family-base);
   font-size: 14px;
   font-weight: 500;
+
+  cursor: pointer;
+
+  transition:
+    color 0.2s ease;
 }
 
 .cart-link:hover {
   color: var(--color-primary-hover);
 }
 
-/* NOT FOUND */
+/* =========================
+   NOT FOUND
+========================= */
 
 .not-found {
-  background-color: var(--color-white);
-
-  border-radius: var(--radius-card);
-
   padding: var(--space-12);
 
   text-align: center;
+
+  background-color: var(--color-white);
+
+  border-radius: var(--radius-card);
 }
 
 .not-found h2 {
-  color: var(--color-primary);
-
   margin-bottom: var(--space-3);
+
+  color: var(--color-primary);
 }
 
 .not-found p {
-  color: #777;
-
   margin-bottom: var(--space-6);
+
+  color: #777;
 }
 
 .primary-button {
-  border: none;
+  padding:
+    var(--space-3)
+    var(--space-6);
 
+  border: none;
   border-radius: var(--radius-default);
 
   background-color: var(--color-primary);
   color: var(--color-white);
 
-  padding:
-    var(--space-3)
-    var(--space-6);
-
+  font-family: var(--font-family-base);
   font-weight: 500;
+
+  cursor: pointer;
 }
 
 .primary-button:hover {
   background-color: var(--color-primary-hover);
 }
 
-/* RESPONSIVE */
+/* =========================
+   CART TOAST
+========================= */
+
+.cart-toast {
+  position: fixed;
+
+  right: 28px;
+  bottom: 28px;
+
+  z-index: 99999;
+
+  width: min(
+    390px,
+    calc(100vw - 32px)
+  );
+
+  display: flex;
+  align-items: center;
+
+  gap: 14px;
+
+  padding: 15px 16px;
+
+  border: 1px solid var(--color-pink-light);
+  border-radius: 14px;
+
+  background-color: var(--color-white);
+
+  box-shadow:
+    0 18px 45px rgba(
+      27,
+      59,
+      54,
+      0.16
+    ),
+    0 5px 15px rgba(
+      27,
+      59,
+      54,
+      0.08
+    );
+}
+
+.toast-icon {
+  width: 38px;
+  height: 38px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  border-radius: 50%;
+
+  background-color: var(--color-primary);
+  color: var(--color-white);
+}
+
+.toast-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.toast-content {
+  min-width: 0;
+
+  flex: 1;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 3px;
+}
+
+.toast-content strong {
+  color: var(--color-primary);
+
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.toast-content span {
+  overflow: hidden;
+
+  color: var(--color-gray);
+
+  font-size: 12px;
+  line-height: 1.4;
+
+  text-overflow: ellipsis;
+}
+
+.toast-close {
+  width: 28px;
+  height: 28px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  padding: 0;
+
+  border: none;
+  border-radius: 50%;
+
+  background-color: transparent;
+  color: var(--color-sand);
+
+  font-family: inherit;
+  font-size: 22px;
+  line-height: 1;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.toast-close:hover {
+  background-color: var(--color-beige);
+  color: var(--color-primary);
+}
+
+/* =========================
+   TOAST ANIMATION
+========================= */
+
+.cart-toast-enter-active,
+.cart-toast-leave-active {
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+}
+
+.cart-toast-enter-from,
+.cart-toast-leave-to {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
 
 @media (max-width: 800px) {
-
   .product-details {
     grid-template-columns: 1fr;
 
@@ -688,7 +1177,6 @@ function goToCart() {
 }
 
 @media (max-width: 500px) {
-
   .product-details-page {
     padding-top: var(--space-6);
   }
@@ -701,6 +1189,13 @@ function goToCart() {
   .product-image {
     height: 350px;
     min-height: 350px;
+  }
+
+  .cart-toast {
+    right: 16px;
+    bottom: 16px;
+
+    width: calc(100vw - 32px);
   }
 }
 </style>
