@@ -1,56 +1,66 @@
 <script setup>
 import { ref, reactive, computed } from 'vue'
+import { useAuthStore } from '../stores/auth'
+import { useCartStore } from '../stores/cart'
 import BaseButton from '../components/common/Button.vue'
 import Loading from '../components/common/Loading.vue'
 import Modal from '../components/common/Modal.vue'
 import ProductCard from '../components/ProductCard.vue'
 import productsData from '../data/products.json'
 
-/**
- * UserProfile - Profile page for the fashion e-commerce app.
- *
- * NOTE (integration): user info, order history and favorites are
- * mocked locally here. Once the auth/user store (Pinia) exists,
- * replace `user`, `orders` and `favoriteIds` with real data from
- * that store - the template/markup below doesn't need to change.
- */
+// Stores
+const authStore = useAuthStore()
+const cartStore = useCartStore()
 
 const isPageLoading = ref(false)
 const isSaving = ref(false)
 const isEditModalOpen = ref(false)
 
-const user = reactive({
-  name: 'Sara Ahmed',
-  email: 'sara.ahmed@example.com',
-  avatar: 'https://i.pravatar.cc/160?img=47'
+// استدعاء بيانات المستخدم مباشرة من الـ Auth Store
+const user = computed(() => {
+  if (authStore.user) {
+    return {
+      fullName: authStore.user.fullName || 'User',
+      email: authStore.user.email || '',
+      avatar: 'https://i.pravatar.cc/160?img=47'
+    }
+  }
+  return {
+    fullName: 'Guest User',
+    email: 'guest@example.com',
+    avatar: 'https://i.pravatar.cc/160?img=47'
+  }
 })
 
 const editForm = reactive({
-  name: user.name,
-  email: user.email
+  fullName: user.value.fullName,
+  email: user.value.email
 })
 
 function openEditModal() {
-  editForm.name = user.name
-  editForm.email = user.email
+  editForm.fullName = user.value.fullName
+  editForm.email = user.value.email
   isEditModalOpen.value = true
 }
 
 function saveProfile() {
-  if (!editForm.name.trim() || !editForm.email.trim()) {
+  if (!editForm.fullName.trim() || !editForm.email.trim()) {
     return
   }
 
   isSaving.value = true
 
-  // Simulated save - replace with a real API/store call on integration.
+  // تحديث بيانات المستخدم في الـ Auth Store مباشرة
   setTimeout(() => {
-    user.name = editForm.name.trim()
-    user.email = editForm.email.trim()
+    if (authStore.user) {
+      authStore.user.fullName = editForm.fullName.trim()
+      authStore.user.email = editForm.email.trim()
+      localStorage.setItem('user', JSON.stringify(authStore.user))
+    }
 
     isSaving.value = false
     isEditModalOpen.value = false
-  }, 900)
+  }, 600)
 }
 
 // Mock order history
@@ -82,9 +92,8 @@ function statusClass(status) {
   return `order-status order-status--${status.toLowerCase()}`
 }
 
-// Mock favorites, pulled from the shared products data
+// Mock favorites, pulled from shared products
 const favoriteIds = ref([2, 7, 13])
-const addingToCartId = ref(null)
 
 const favoriteProducts = computed(() =>
   productsData.products.filter((product) =>
@@ -102,13 +111,9 @@ function toggleFavorite(product) {
   }
 }
 
+// ربط حقيقي بـ Cart Store
 function addToCart(product) {
-  addingToCartId.value = product.id
-
-  // Simulated add-to-cart - replace with real cart store call on integration.
-  setTimeout(() => {
-    addingToCartId.value = null
-  }, 700)
+  cartStore.addToCart(product)
 }
 </script>
 
@@ -124,13 +129,13 @@ function addToCart(product) {
     <section class="profile-header">
       <img
         :src="user.avatar"
-        :alt="user.name"
+        :alt="user.fullName"
         class="profile-header__avatar"
       />
 
       <div class="profile-header__info">
         <h1 class="profile-header__name">
-          {{ user.name }}
+          {{ user.fullName }}
         </h1>
 
         <p class="profile-header__email">
@@ -206,7 +211,6 @@ function addToCart(product) {
           :key="product.id"
           :product="product"
           :is-favorite="favoriteIds.includes(product.id)"
-          :adding-to-cart="addingToCartId === product.id"
           @toggle-favorite="toggleFavorite"
           @add-to-cart="addToCart"
         />
@@ -233,7 +237,7 @@ function addToCart(product) {
           <span>Full name</span>
 
           <input
-            v-model="editForm.name"
+            v-model="editForm.fullName"
             type="text"
             required
             autocomplete="name"
