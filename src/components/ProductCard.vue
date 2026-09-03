@@ -3,21 +3,8 @@ import { computed } from 'vue'
 import BaseButton from './common/Button.vue'
 
 /**
- * ProductCard - shared Product Card component (Design System)
- *
- * Expected product shape:
- * {
- *   id,
- *   name,
- *   price,
- *   currency,
- *   image,
- *   oldPrice?,
- *   discount?,
- *   rating?,
- *   reviewsCount?,
- *   brand?
- * }
+ * ProductCard - shared Product Card component
+ * Supports favorites, discounts, ratings and add-to-cart.
  */
 
 const props = defineProps({
@@ -130,9 +117,10 @@ function handleImageError(event) {
           aria-hidden="true"
         >
           <path
-            d="M12 21s-6.7-4.35-9.3-8.28C1 10.1 1.6 6.6 4.7 5.1c2.3-1.1 4.6-.2 5.9 1.5.5.6.9 1.2 1.4 1.9.5-.7.9-1.3 1.4-1.9 1.3-1.7 3.6-2.6 5.9-1.5 3.1 1.5 3.7 5 2 7.62C18.7 16.65 12 21 12 21z"
+            d="M12 21s-6.7-4.35-9.3-8.28C1 10.1 1.6 6.6 4.7 5.1c2.3-1.1 4.6-.2 5.9 1.5.5.6.9 1.2 1.4 1.9.5-.7.9-1.3-1.4-1.9 1.3-1.7 3.6-2.6 5.9-1.5 3.1 1.5 3.7 5 2 7.62C18.7 16.65 12 21 12 21z"
             stroke="currentColor"
-            stroke-width="1.6"
+            stroke-width="1.5"
+            stroke-linecap="round"
             stroke-linejoin="round"
           />
         </svg>
@@ -202,11 +190,10 @@ function handleImageError(event) {
 
 <style scoped>
 .product-card {
-  display: flex;
-  flex-direction: column;
-  background-color: var(--color-white);
-  border-radius: var(--radius-card);
+  position: relative;
   overflow: hidden;
+  background-color: var(--color-white);
+  border-radius: var(--radius-md);
   box-shadow: 0 4px 16px rgba(27, 59, 54, 0.06);
   font-family: var(--font-family-base);
   transition:
@@ -215,11 +202,10 @@ function handleImageError(event) {
 }
 
 .product-card:hover {
-  box-shadow: 0 8px 24px rgba(27, 59, 54, 0.12);
+  box-shadow: 0 8px 24px rgba(27, 59, 54, 0.1);
   transform: translateY(-2px);
 }
 
-/* Image */
 .product-card__media {
   position: relative;
   aspect-ratio: 3 / 4;
@@ -234,27 +220,25 @@ function handleImageError(event) {
   display: block;
 }
 
-/* Discount Badge */
 .product-card__badge {
   position: absolute;
   top: var(--space-3);
   left: var(--space-3);
+  padding: 4px 8px;
   background-color: var(--color-primary);
   color: var(--color-white);
   font-size: 12px;
   font-weight: 600;
-  padding: 4px var(--space-2);
   border-radius: var(--radius-pill);
 }
 
-/* Favorite */
 .product-card__favorite {
   position: absolute;
   top: var(--space-3);
   right: var(--space-3);
-  width: 34px;
-  height: 34px;
-  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  display: flex;
   align-items: center;
   justify-content: center;
   border: none;
@@ -275,7 +259,6 @@ function handleImageError(event) {
   color: #c0435a;
 }
 
-/* Body */
 .product-card__body {
   display: flex;
   flex-direction: column;
@@ -298,17 +281,14 @@ function handleImageError(event) {
   line-height: 1.4;
   color: var(--color-gray);
   margin: 0;
-
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-
   min-height: 2.6em;
 }
 
-/* Rating */
 .product-card__rating {
   display: flex;
   align-items: center;
@@ -326,7 +306,6 @@ function handleImageError(event) {
   color: var(--color-sand);
 }
 
-/* Prices */
 .product-card__prices {
   display: flex;
   align-items: baseline;
@@ -337,7 +316,7 @@ function handleImageError(event) {
 .product-card__price {
   font-size: 16px;
   font-weight: 600;
-  color: var(--color-primary);
+  color: var(--color-gray);
 }
 
 .product-card__old-price {
@@ -346,3 +325,4 @@ function handleImageError(event) {
   text-decoration: line-through;
 }
 </style>
+
