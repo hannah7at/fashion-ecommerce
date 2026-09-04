@@ -5,6 +5,7 @@ import ProductCard from '../components/ProductCard.vue'
 import productsData from '../data/products.json'
 import { useCartStore } from '../stores/cart'
 
+
 const router = useRouter()
 const cartStore = useCartStore()
 
