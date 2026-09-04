@@ -50,11 +50,65 @@ const getProductText = (product) => {
     product?.description,
     product?.style,
     product?.color,
-    product?.brand
+    product?.brand,
+    product?.gender
   ]
     .filter(Boolean)
     .map(value => normalize(value))
     .join(' ')
+}
+
+/*
+ * Strong gender matching.
+ *
+ * First we trust the gender field when it exists.
+ * If gender is missing, we try to detect the gender
+ * from the product text.
+ *
+ * IMPORTANT:
+ * We use word boundaries so "women" does NOT match "men".
+ */
+const matchesGender = (product) => {
+  const gender = normalize(product?.gender)
+
+  // Explicit gender from dataset
+  if (gender === 'women' || gender === 'female') {
+    return selectedGender.value === 'women'
+  }
+
+  if (gender === 'men' || gender === 'male') {
+    return selectedGender.value === 'men'
+  }
+
+  // Unisex products can be used for both
+  if (gender === 'unisex') {
+    return true
+  }
+
+  /*
+   * If gender is missing or unknown,
+   * inspect product text.
+   */
+  const productText = getProductText(product)
+
+  const menPattern =
+    /\bmen\b|\bmen's\b|\bmens\b|\bmale\b|\bman\b|\bmenswear\b/i
+
+  const womenPattern =
+    /\bwomen\b|\bwomen's\b|\bwomens\b|\bfemale\b|\bwoman\b|\bwomenswear\b/i
+
+  const isMenProduct = menPattern.test(productText)
+  const isWomenProduct = womenPattern.test(productText)
+
+  if (selectedGender.value === 'women') {
+    return !isMenProduct
+  }
+
+  if (selectedGender.value === 'men') {
+    return !isWomenProduct
+  }
+
+  return false
 }
 
 /*
@@ -174,15 +228,6 @@ const getCategoryType = (product) => {
   }
 
   return 'other'
-}
-
-const matchesGender = (product) => {
-  const gender = normalize(product.gender)
-
-  return (
-    gender === selectedGender.value ||
-    gender === 'unisex'
-  )
 }
 
 const getAllowedStyles = () => {
@@ -441,10 +486,6 @@ const findProduct = (type, usedIds) => {
  * 2. Jeans / Denim
  * 3. Stylish pants
  * 4. Normal formal bottom as fallback
- *
- * We intentionally search all women's products here
- * instead of requiring style === formal because the
- * dataset may contain leather/jeans pieces marked casual.
  */
 const findWomenFormalBottom = (usedIds) => {
   const womenProducts = products.filter(product => {
@@ -528,7 +569,6 @@ const outfitItems = computed(() => {
 
   /*
    * MEN FORMAL
-   * Use a complete suit instead of separate top/bottom.
    */
   if (
     selectedGender.value === 'men' &&
@@ -562,7 +602,6 @@ const outfitItems = computed(() => {
 
   /*
    * WOMEN FORMAL
-   * Blazer + leather/jeans pants + formal shoes.
    */
   if (
     selectedGender.value === 'women' &&
@@ -713,6 +752,10 @@ const addFullOutfit = () => {
 }
 
 const openProduct = (product) => {
+  if (!product?.id) {
+    return
+  }
+
   router.push(`/product/${product.id}`)
 }
 </script>
