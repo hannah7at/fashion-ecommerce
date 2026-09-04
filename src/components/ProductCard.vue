@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useCartStore } from '../stores/cart'
 import BaseButton from './common/Button.vue'
 
 const props = defineProps({
@@ -23,11 +24,13 @@ const props = defineProps({
 
 const emit = defineEmits([
   'toggle-favorite',
-  'add-to-cart'
+  'add-to-cart',
+  'view-product'
 ])
 
 const router = useRouter()
 const authStore = useAuthStore()
+const cartStore = useCartStore()
 
 /*
  * The real favorite state comes from Auth Store.
@@ -72,6 +75,17 @@ function formatPrice(value, currency = 'USD') {
   return `${value.toFixed(2)} ${currency}`
 }
 
+/*
+ * Open product details.
+ * This is a separate event so Add to Cart never triggers it.
+ */
+function handleViewProduct() {
+  emit('view-product', props.product)
+}
+
+/*
+ * Favorite button.
+ */
 function handleFavorite(event) {
   event.preventDefault()
   event.stopPropagation()
@@ -89,8 +103,23 @@ function handleFavorite(event) {
   emit('toggle-favorite', props.product)
 }
 
-function handleAddToCart() {
+/*
+ * Add product to cart.
+ *
+ * IMPORTANT:
+ * stopPropagation prevents the click from being treated
+ * as a product-details click.
+ *
+ * The actual cart operation happens here.
+ * The parent page only receives the event to show a message.
+ */
+function handleAddToCart(event) {
+  event.preventDefault()
+  event.stopPropagation()
+
   if (props.addingToCart) return
+
+  cartStore.addToCart(props.product)
 
   emit('add-to-cart', props.product)
 }
@@ -106,9 +135,11 @@ function handleImageError(event) {
     <!-- Product Image -->
     <div class="product-card__media">
 
-      <router-link
-        :to="`/product/${product.id}`"
-        class="product-card__image-link"
+      <button
+        type="button"
+        class="product-card__image-button"
+        @click="handleViewProduct"
+        :aria-label="`View ${product.name}`"
       >
         <img
           :src="product.image"
@@ -117,7 +148,7 @@ function handleImageError(event) {
           loading="lazy"
           @error="handleImageError"
         />
-      </router-link>
+      </button>
 
       <!-- Discount -->
       <span
@@ -171,12 +202,13 @@ function handleImageError(event) {
       </p>
 
       <!-- Product Name -->
-      <router-link
-        :to="`/product/${product.id}`"
+      <button
+        type="button"
         class="product-card__name"
+        @click="handleViewProduct"
       >
         {{ product.name }}
-      </router-link>
+      </button>
 
       <!-- Rating -->
       <div
@@ -257,12 +289,16 @@ function handleImageError(event) {
   overflow: hidden;
 }
 
-.product-card__image-link {
+.product-card__image-button {
   position: relative;
   z-index: 1;
   display: block;
   width: 100%;
   height: 100%;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
   cursor: pointer;
 }
 
@@ -275,7 +311,7 @@ function handleImageError(event) {
   transition: transform 0.3s ease;
 }
 
-.product-card__image-link:hover .product-card__image {
+.product-card__image-button:hover .product-card__image {
   transform: scale(1.03);
 }
 
@@ -373,19 +409,30 @@ function handleImageError(event) {
 }
 
 .product-card__name {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+
+  font-family: inherit;
   font-size: 14px;
   font-weight: 500;
   line-height: 1.4;
   color: var(--color-gray);
+
   margin: 0;
+
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+
   min-height: 2.6em;
+
   cursor: pointer;
-  text-decoration: none;
+  text-align: left;
+
   transition: color 0.2s ease;
 }
 

@@ -16,6 +16,11 @@ const selectedGender = ref('women')
 const selectedStyle = ref('casual')
 const outfitVersion = ref(0)
 
+const showSuccessMessage = ref(false)
+const successMessage = ref('')
+
+let successTimer = null
+
 const styles = [
   {
     name: 'Casual',
@@ -38,39 +43,129 @@ const normalize = (value) => {
   return String(value || '').toLowerCase().trim()
 }
 
+const getProductText = (product) => {
+  return [
+    product?.name,
+    product?.category,
+    product?.description,
+    product?.style,
+    product?.color,
+    product?.brand
+  ]
+    .filter(Boolean)
+    .map(value => normalize(value))
+    .join(' ')
+}
+
+/*
+ * Convert the real product category into one of
+ * the outfit categories we need.
+ *
+ * Bags, watches, jewelry and accessories are NEVER
+ * considered as TOP, BOTTOM or SHOES.
+ */
 const getCategoryType = (product) => {
   const category = normalize(product.category)
+  const text = getProductText(product)
 
+  // ACCESSORIES / BAGS
+  const accessoryWords = [
+    'bag',
+    'bags',
+    'handbag',
+    'backpack',
+    'purse',
+    'wallet',
+    'watch',
+    'jewelry',
+    'jewellery',
+    'necklace',
+    'bracelet',
+    'earring',
+    'ring',
+    'accessory',
+    'accessories',
+    'belt',
+    'sunglasses',
+    'scarf',
+    'hat',
+    'cap'
+  ]
+
+  if (accessoryWords.some(word => category.includes(word))) {
+    return 'other'
+  }
+
+  // SUIT
+  if (
+    category.includes('suit') ||
+    text.includes('formal suit') ||
+    text.includes('business suit') ||
+    text.includes('dinner suit') ||
+    text.includes('tailored suit')
+  ) {
+    return 'suit'
+  }
+
+  // BLAZER
+  if (
+    category.includes('blazer') ||
+    text.includes('blazer')
+  ) {
+    return 'blazer'
+  }
+
+  // TOP
   if (
     category.includes('shirt') ||
     category.includes('t-shirt') ||
     category.includes('tshirt') ||
-    category.includes('top')
+    category.includes('blouse') ||
+    category.includes('top') ||
+    category.includes('camisole') ||
+    category.includes('cami') ||
+    category.includes('tank') ||
+    category.includes('polo') ||
+    category.includes('sweater') ||
+    category.includes('cardigan')
   ) {
     return 'top'
   }
 
+  // BOTTOM
   if (
     category.includes('jean') ||
     category.includes('pant') ||
     category.includes('trouser') ||
-    category.includes('skirt')
+    category.includes('skirt') ||
+    category.includes('short') ||
+    category.includes('legging') ||
+    category.includes('jogger') ||
+    category.includes('track-pant')
   ) {
     return 'bottom'
   }
 
+  // SHOES
   if (
     category.includes('shoe') ||
     category.includes('sneaker') ||
-    category.includes('slipper')
+    category.includes('slipper') ||
+    category.includes('heel') ||
+    category.includes('sandal') ||
+    category.includes('boot') ||
+    category.includes('loafer') ||
+    category.includes('flat')
   ) {
     return 'shoes'
   }
 
+  // DRESS
   if (category.includes('dress')) {
     return 'dress'
   }
 
+  // OUTERWEAR
   if (
     category.includes('jacket') ||
     category.includes('coat')
@@ -84,21 +179,221 @@ const getCategoryType = (product) => {
 const matchesGender = (product) => {
   const gender = normalize(product.gender)
 
-  return gender === selectedGender.value || gender === 'unisex'
+  return (
+    gender === selectedGender.value ||
+    gender === 'unisex'
+  )
+}
+
+const getAllowedStyles = () => {
+  if (selectedStyle.value === 'formal') {
+    return ['formal', 'elegant', 'classic']
+  }
+
+  if (selectedStyle.value === 'sporty') {
+    return ['sporty', 'sports']
+  }
+
+  return ['casual']
 }
 
 const matchesStyle = (product) => {
   const style = normalize(product.style)
 
-  return style === selectedStyle.value
+  return getAllowedStyles().includes(style)
 }
 
 const matchingProducts = computed(() => {
   return products.filter(product => {
-    return matchesGender(product) && matchesStyle(product)
+    return (
+      matchesGender(product) &&
+      matchesStyle(product)
+    )
   })
 })
 
+/*
+ * Give priority to products that make more sense
+ * for the selected style.
+ */
+const getProductPriority = (product, type) => {
+  const text = getProductText(product)
+
+  if (selectedStyle.value === 'formal') {
+    if (selectedGender.value === 'men') {
+      if (
+        type === 'suit' ||
+        text.includes('formal suit') ||
+        text.includes('business suit')
+      ) {
+        return 1
+      }
+
+      if (
+        type === 'blazer' ||
+        text.includes('blazer') ||
+        text.includes('formal jacket')
+      ) {
+        return 2
+      }
+
+      if (
+        type === 'bottom' &&
+        (
+          text.includes('trouser') ||
+          text.includes('formal pant') ||
+          text.includes('dress pant')
+        )
+      ) {
+        return 3
+      }
+
+      if (
+        type === 'shoes' &&
+        (
+          text.includes('formal shoe') ||
+          text.includes('dress shoe') ||
+          text.includes('loafer') ||
+          text.includes('oxford')
+        )
+      ) {
+        return 4
+      }
+    }
+
+    if (selectedGender.value === 'women') {
+      if (
+        type === 'blazer' ||
+        text.includes('blazer')
+      ) {
+        return 1
+      }
+
+      if (
+        type === 'top' &&
+        (
+          text.includes('blouse') ||
+          text.includes('formal') ||
+          text.includes('dressy')
+        )
+      ) {
+        return 2
+      }
+
+      if (type === 'bottom') {
+        if (
+          text.includes('leather') ||
+          text.includes('faux leather') ||
+          text.includes('vegan leather')
+        ) {
+          return 3
+        }
+
+        if (
+          text.includes('jean') ||
+          text.includes('denim')
+        ) {
+          return 4
+        }
+
+        if (
+          text.includes('trouser') ||
+          text.includes('pant')
+        ) {
+          return 5
+        }
+      }
+
+      if (
+        type === 'shoes' &&
+        (
+          text.includes('heel') ||
+          text.includes('formal shoe') ||
+          text.includes('dress shoe') ||
+          text.includes('loafer') ||
+          text.includes('flat')
+        )
+      ) {
+        return 6
+      }
+    }
+  }
+
+  if (selectedStyle.value === 'sporty') {
+    if (type === 'top') {
+      if (
+        text.includes('sport') ||
+        text.includes('active') ||
+        text.includes('athletic') ||
+        text.includes('tank')
+      ) {
+        return 1
+      }
+
+      return 5
+    }
+
+    if (type === 'bottom') {
+      if (
+        text.includes('jogger') ||
+        text.includes('legging') ||
+        text.includes('track')
+      ) {
+        return 1
+      }
+
+      return 5
+    }
+
+    if (type === 'shoes') {
+      if (
+        text.includes('sneaker') ||
+        text.includes('sport')
+      ) {
+        return 1
+      }
+
+      return 5
+    }
+  }
+
+  if (selectedStyle.value === 'casual') {
+    if (type === 'top') {
+      if (
+        text.includes('casual') ||
+        text.includes('t-shirt') ||
+        text.includes('shirt')
+      ) {
+        return 1
+      }
+    }
+
+    if (type === 'bottom') {
+      if (
+        text.includes('jean') ||
+        text.includes('denim') ||
+        text.includes('casual')
+      ) {
+        return 1
+      }
+    }
+
+    if (type === 'shoes') {
+      if (
+        text.includes('sneaker') ||
+        text.includes('casual')
+      ) {
+        return 1
+      }
+    }
+  }
+
+  return 50
+}
+
+/*
+ * Find ONLY the requested outfit type.
+ */
 const findProduct = (type, usedIds) => {
   const available = matchingProducts.value.filter(product => {
     return (
@@ -111,52 +406,253 @@ const findProduct = (type, usedIds) => {
     return null
   }
 
-  const index = outfitVersion.value % available.length
+  const sortedProducts = [...available].sort((a, b) => {
+    const priorityA = getProductPriority(a, type)
+    const priorityB = getProductPriority(b, type)
 
-  return available[index]
+    if (priorityA !== priorityB) {
+      return priorityA - priorityB
+    }
+
+    return Number(a.id || 0) - Number(b.id || 0)
+  })
+
+  const exactStyleProducts = sortedProducts.filter(product => {
+    return normalize(product.style) === selectedStyle.value
+  })
+
+  const candidates =
+    exactStyleProducts.length > 0
+      ? exactStyleProducts
+      : sortedProducts
+
+  const index =
+    outfitVersion.value % candidates.length
+
+  return candidates[index]
 }
 
-const outfitProducts = computed(() => {
+/*
+ * SPECIAL CASE:
+ * Women + Formal
+ *
+ * We want the bottom to look stylish and modern:
+ * 1. Leather / Faux Leather
+ * 2. Jeans / Denim
+ * 3. Stylish pants
+ * 4. Normal formal bottom as fallback
+ *
+ * We intentionally search all women's products here
+ * instead of requiring style === formal because the
+ * dataset may contain leather/jeans pieces marked casual.
+ */
+const findWomenFormalBottom = (usedIds) => {
+  const womenProducts = products.filter(product => {
+    return (
+      matchesGender(product) &&
+      !usedIds.includes(product.id) &&
+      getCategoryType(product) === 'bottom'
+    )
+  })
+
+  if (!womenProducts.length) {
+    return null
+  }
+
+  const leatherPants = womenProducts.filter(product => {
+    const text = getProductText(product)
+
+    return (
+      text.includes('leather') ||
+      text.includes('faux leather') ||
+      text.includes('vegan leather')
+    )
+  })
+
+  if (leatherPants.length) {
+    return leatherPants[
+      outfitVersion.value % leatherPants.length
+    ]
+  }
+
+  const jeans = womenProducts.filter(product => {
+    const text = getProductText(product)
+
+    return (
+      text.includes('jean') ||
+      text.includes('denim')
+    )
+  })
+
+  if (jeans.length) {
+    return jeans[
+      outfitVersion.value % jeans.length
+    ]
+  }
+
+  const stylishPants = womenProducts.filter(product => {
+    const text = getProductText(product)
+
+    return (
+      text.includes('pant') ||
+      text.includes('trouser') ||
+      text.includes('wide leg') ||
+      text.includes('straight leg') ||
+      text.includes('tailored')
+    )
+  })
+
+  if (stylishPants.length) {
+    return stylishPants[
+      outfitVersion.value % stylishPants.length
+    ]
+  }
+
+  return findProduct('bottom', usedIds)
+}
+
+/*
+ * Build the outfit.
+ *
+ * Men Formal:
+ *   SUIT + SHOES
+ *
+ * Women Formal:
+ *   BLAZER + BOTTOM + SHOES
+ *
+ * Casual / Sporty:
+ *   TOP + BOTTOM + SHOES
+ */
+const outfitItems = computed(() => {
   const usedIds = []
-  const result = []
 
-  const addProduct = (type) => {
-    const product = findProduct(type, usedIds)
+  /*
+   * MEN FORMAL
+   * Use a complete suit instead of separate top/bottom.
+   */
+  if (
+    selectedGender.value === 'men' &&
+    selectedStyle.value === 'formal'
+  ) {
+    const suit = findProduct('suit', usedIds)
 
-    if (product) {
-      result.push(product)
-      usedIds.push(product.id)
+    if (suit) {
+      usedIds.push(suit.id)
     }
-  }
 
-  /*
-   * Build a complete outfit:
-   * Top + Bottom + Shoes
-   */
-  addProduct('top')
-  addProduct('bottom')
-  addProduct('shoes')
+    const shoes = findProduct('shoes', usedIds)
 
-  /*
-   * If one of the main categories is missing,
-   * complete the outfit with another suitable item.
-   */
-  if (result.length < 3) {
-    const extraProducts = matchingProducts.value.filter(product => {
-      return !usedIds.includes(product.id)
-    })
+    if (shoes) {
+      usedIds.push(shoes.id)
+    }
 
-    for (const product of extraProducts) {
-      if (result.length >= 3) {
-        break
+    return [
+      {
+        type: 'suit',
+        label: 'SUIT',
+        product: suit
+      },
+      {
+        type: 'shoes',
+        label: 'SHOES',
+        product: shoes
       }
-
-      result.push(product)
-      usedIds.push(product.id)
-    }
+    ]
   }
 
-  return result
+  /*
+   * WOMEN FORMAL
+   * Blazer + leather/jeans pants + formal shoes.
+   */
+  if (
+    selectedGender.value === 'women' &&
+    selectedStyle.value === 'formal'
+  ) {
+    const blazer = findProduct('blazer', usedIds)
+
+    if (blazer) {
+      usedIds.push(blazer.id)
+    }
+
+    const bottom = findWomenFormalBottom(usedIds)
+
+    if (bottom) {
+      usedIds.push(bottom.id)
+    }
+
+    const shoes = findProduct('shoes', usedIds)
+
+    if (shoes) {
+      usedIds.push(shoes.id)
+    }
+
+    return [
+      {
+        type: 'blazer',
+        label: 'BLAZER',
+        product: blazer
+      },
+      {
+        type: 'bottom',
+        label: 'BOTTOM',
+        product: bottom
+      },
+      {
+        type: 'shoes',
+        label: 'SHOES',
+        product: shoes
+      }
+    ]
+  }
+
+  /*
+   * CASUAL / SPORTY
+   */
+  const top = findProduct('top', usedIds)
+
+  if (top) {
+    usedIds.push(top.id)
+  }
+
+  const bottom = findProduct('bottom', usedIds)
+
+  if (bottom) {
+    usedIds.push(bottom.id)
+  }
+
+  const shoes = findProduct('shoes', usedIds)
+
+  if (shoes) {
+    usedIds.push(shoes.id)
+  }
+
+  return [
+    {
+      type: 'top',
+      label: 'TOP',
+      product: top
+    },
+    {
+      type: 'bottom',
+      label: 'BOTTOM',
+      product: bottom
+    },
+    {
+      type: 'shoes',
+      label: 'SHOES',
+      product: shoes
+    }
+  ]
+})
+
+const outfitProducts = computed(() => {
+  return outfitItems.value
+    .filter(item => item.product)
+    .map(item => item.product)
+})
+
+const hasCompleteOutfit = computed(() => {
+  return outfitItems.value.every(item => item.product)
 })
 
 const totalPrice = computed(() => {
@@ -164,6 +660,19 @@ const totalPrice = computed(() => {
     return total + Number(product.price || 0)
   }, 0)
 })
+
+const showSuccess = (message) => {
+  successMessage.value = message
+  showSuccessMessage.value = true
+
+  if (successTimer) {
+    clearTimeout(successTimer)
+  }
+
+  successTimer = setTimeout(() => {
+    showSuccessMessage.value = false
+  }, 3000)
+}
 
 const changeOutfit = () => {
   outfitVersion.value += 1
@@ -179,12 +688,28 @@ const selectStyle = (style) => {
   outfitVersion.value = 0
 }
 
+const handleCardAddToCart = (product) => {
+  showSuccess(
+    `${product?.name || 'Product'} added to your cart.`
+  )
+}
+
 const addFullOutfit = () => {
+  if (!hasCompleteOutfit.value) {
+    showSuccess(
+      'A complete outfit is not available for this selection.'
+    )
+
+    return
+  }
+
   outfitProducts.value.forEach(product => {
     cartStore.addToCart(product)
   })
 
-  router.push('/cart')
+  showSuccess(
+    'Complete outfit added to your cart.'
+  )
 }
 
 const openProduct = (product) => {
@@ -194,6 +719,21 @@ const openProduct = (product) => {
 
 <template>
   <div class="outfit-page">
+
+    <!-- Success Message -->
+    <Transition name="toast">
+      <div
+        v-if="showSuccessMessage"
+        class="success-toast"
+        role="status"
+      >
+        <span class="toast-icon">✓</span>
+
+        <span class="toast-text">
+          {{ successMessage }}
+        </span>
+      </div>
+    </Transition>
 
     <!-- Header -->
     <section class="outfit-header">
@@ -291,10 +831,15 @@ const openProduct = (product) => {
         <div class="result-header">
 
           <div>
-            <span class="result-label">YOUR SUGGESTION</span>
+            <span class="result-label">
+              YOUR SUGGESTION
+            </span>
 
             <h2>
-              {{ selectedStyle.charAt(0).toUpperCase() + selectedStyle.slice(1) }}
+              {{
+                selectedStyle.charAt(0).toUpperCase() +
+                selectedStyle.slice(1)
+              }}
               Look
             </h2>
 
@@ -304,7 +849,7 @@ const openProduct = (product) => {
           </div>
 
           <button
-            v-if="outfitProducts.length > 0"
+            v-if="hasCompleteOutfit"
             type="button"
             class="change-button"
             @click="changeOutfit"
@@ -314,27 +859,28 @@ const openProduct = (product) => {
 
         </div>
 
-        <!-- Outfit -->
+        <!-- Complete Outfit -->
         <div
-          v-if="outfitProducts.length > 0"
+          v-if="hasCompleteOutfit"
           class="outfit-content"
         >
 
           <div class="products-grid">
 
             <div
-              v-for="(product, index) in outfitProducts"
-              :key="product.id"
+              v-for="item in outfitItems"
+              :key="item.type"
               class="outfit-item"
             >
 
               <div class="item-label">
-                {{ index === 0 ? 'TOP' : index === 1 ? 'BOTTOM' : 'SHOES' }}
+                {{ item.label }}
               </div>
 
               <ProductCard
-                :product="product"
-                @click="openProduct(product)"
+                :product="item.product"
+                @view-product="openProduct"
+                @add-to-cart="handleCardAddToCart"
               />
 
             </div>
@@ -363,11 +909,12 @@ const openProduct = (product) => {
 
         </div>
 
-        <!-- No products -->
+        <!-- No Complete Outfit -->
         <div
           v-else
           class="empty-result"
         >
+
           <div class="empty-icon">✦</div>
 
           <h3>
@@ -375,8 +922,10 @@ const openProduct = (product) => {
           </h3>
 
           <p>
-            We couldn't find enough products for this
-            combination. Try another style or collection.
+            We couldn't find a complete
+            TOP + BOTTOM + SHOES combination
+            for this collection and style.
+            Try another style or collection.
           </p>
 
           <button
@@ -386,6 +935,7 @@ const openProduct = (product) => {
           >
             Browse Products
           </button>
+
         </div>
 
       </section>
@@ -401,7 +951,72 @@ const openProduct = (product) => {
   padding-bottom: 80px;
 }
 
-/* Header */
+/* =========================
+   SUCCESS TOAST
+   ========================= */
+
+.success-toast {
+  position: fixed;
+  top: 90px;
+  right: 28px;
+  z-index: 9999;
+
+  min-width: 300px;
+  max-width: 420px;
+
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  padding: 15px 18px;
+
+  background-color: var(--color-white);
+  border: 1px solid var(--color-pink-light);
+  border-left: 4px solid var(--color-primary);
+  border-radius: var(--radius-card);
+
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.12);
+
+  color: var(--color-primary);
+}
+
+.toast-icon {
+  width: 27px;
+  height: 27px;
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+  background-color: var(--color-primary);
+  color: var(--color-white);
+
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.toast-text {
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+.toast-enter-active,
+.toast-leave-active {
+  transition: all 0.25s ease;
+}
+
+.toast-enter-from,
+.toast-leave-to {
+  opacity: 0;
+  transform: translateY(-12px);
+}
+
+/* =========================
+   HEADER
+   ========================= */
 
 .outfit-header {
   background-color: var(--color-primary);
@@ -438,7 +1053,9 @@ const openProduct = (product) => {
   line-height: 1.7;
 }
 
-/* Selection */
+/* =========================
+   SELECTION
+   ========================= */
 
 .selection-section {
   margin-bottom: 48px;
@@ -456,11 +1073,14 @@ const openProduct = (product) => {
   height: 42px;
   flex-shrink: 0;
   border-radius: 50%;
+
   background-color: var(--color-primary);
   color: var(--color-white);
+
   display: flex;
   align-items: center;
   justify-content: center;
+
   font-size: 12px;
   font-weight: 600;
 }
@@ -476,7 +1096,9 @@ const openProduct = (product) => {
   font-size: 13px;
 }
 
-/* Gender */
+/* =========================
+   GENDER
+   ========================= */
 
 .gender-selector {
   display: grid;
@@ -489,12 +1111,16 @@ const openProduct = (product) => {
   min-height: 82px;
   padding: 18px 22px;
   text-align: left;
+
   border: 1px solid var(--color-pink-light);
   border-radius: var(--radius-card);
+
   background-color: var(--color-white);
+
   display: flex;
   flex-direction: column;
   gap: 5px;
+
   transition: all 0.2s ease;
 }
 
@@ -518,7 +1144,9 @@ const openProduct = (product) => {
   background-color: #faf6f3;
 }
 
-/* Style */
+/* =========================
+   STYLE
+   ========================= */
 
 .style-selector {
   display: grid;
@@ -530,9 +1158,12 @@ const openProduct = (product) => {
   min-height: 115px;
   padding: 20px;
   text-align: left;
+
   border: 1px solid var(--color-pink-light);
   border-radius: var(--radius-card);
+
   background-color: var(--color-white);
+
   transition: all 0.2s ease;
 }
 
@@ -560,12 +1191,15 @@ const openProduct = (product) => {
   background-color: #faf6f3;
 }
 
-/* Result */
+/* =========================
+   RESULT
+   ========================= */
 
 .outfit-result {
   background-color: var(--color-white);
   border-radius: var(--radius-lg);
   padding: 36px;
+
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
 }
 
@@ -599,12 +1233,16 @@ const openProduct = (product) => {
 
 .change-button {
   padding: 10px 16px;
+
   border: 1px solid var(--color-pink-light);
   border-radius: var(--radius-default);
+
   background-color: var(--color-white);
   color: var(--color-primary);
+
   font-size: 13px;
   font-weight: 500;
+
   white-space: nowrap;
 }
 
@@ -613,7 +1251,9 @@ const openProduct = (product) => {
   border-color: var(--color-sand);
 }
 
-/* Products */
+/* =========================
+   PRODUCTS
+   ========================= */
 
 .products-grid {
   display: grid;
@@ -627,25 +1267,33 @@ const openProduct = (product) => {
 
 .item-label {
   display: inline-flex;
+
   margin-bottom: 10px;
   padding: 5px 10px;
+
   border-radius: var(--radius-pill);
+
   background-color: var(--color-beige);
   color: var(--color-primary);
+
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 1px;
 }
 
-/* Footer */
+/* =========================
+   FOOTER
+   ========================= */
 
 .outfit-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
+
   gap: 20px;
   margin-top: 32px;
   padding-top: 25px;
+
   border-top: 1px solid #eeeeee;
 }
 
@@ -668,10 +1316,14 @@ const openProduct = (product) => {
 .add-outfit-button {
   border: none;
   border-radius: var(--radius-default);
+
   background-color: var(--color-primary);
   color: var(--color-white);
+
   padding: 13px 24px;
+
   font-weight: 500;
+
   transition: background-color 0.2s ease;
 }
 
@@ -679,13 +1331,18 @@ const openProduct = (product) => {
   background-color: var(--color-primary-hover);
 }
 
-/* Empty */
+/* =========================
+   EMPTY
+   ========================= */
 
 .empty-result {
   text-align: center;
+
   padding: 55px 20px;
+
   border: 1px dashed var(--color-pink-light);
   border-radius: var(--radius-card);
+
   background-color: var(--color-beige);
 }
 
@@ -702,8 +1359,10 @@ const openProduct = (product) => {
 }
 
 .empty-result p {
-  max-width: 450px;
+  max-width: 500px;
+
   margin: 0 auto 20px;
+
   color: #777777;
   font-size: 13px;
   line-height: 1.6;
@@ -712,9 +1371,12 @@ const openProduct = (product) => {
 .browse-button {
   border: none;
   border-radius: var(--radius-default);
+
   background-color: var(--color-primary);
   color: var(--color-white);
+
   padding: 12px 22px;
+
   font-weight: 500;
 }
 
@@ -722,7 +1384,9 @@ const openProduct = (product) => {
   background-color: var(--color-primary-hover);
 }
 
-/* Responsive */
+/* =========================
+   RESPONSIVE
+   ========================= */
 
 @media (max-width: 850px) {
   .style-selector {
@@ -772,6 +1436,14 @@ const openProduct = (product) => {
 
   .add-outfit-button {
     width: 100%;
+  }
+
+  .success-toast {
+    top: 75px;
+    right: 15px;
+    left: 15px;
+    min-width: 0;
+    max-width: none;
   }
 }
 </style>
