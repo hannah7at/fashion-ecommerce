@@ -57,11 +57,19 @@ const closeCartToast = () => {
   }
 }
 
+/* =========================
+   NORMALIZE
+========================= */
+
 const normalize = (value) => {
   return String(value || '')
     .trim()
     .toLowerCase()
 }
+
+/* =========================
+   CATEGORY MATCHING
+========================= */
 
 const categoryMatches = (
   productCategory,
@@ -135,6 +143,10 @@ const categoryMatches = (
 
   return category === selected
 }
+
+/* =========================
+   CATEGORIES
+========================= */
 
 const categories = computed(() => {
   const categorySet = new Set()
@@ -210,6 +222,10 @@ const selectedGenderLabel = computed(() => {
   return 'All'
 })
 
+/* =========================
+   PAGE TITLE
+========================= */
+
 const pageTitle = computed(() => {
   if (selectedGender.value === 'men') {
     return 'Men Collection'
@@ -262,6 +278,10 @@ const pageDescription = computed(() => {
   return 'Discover our latest fashion pieces and find your perfect style.'
 })
 
+/* =========================
+   FILTERED PRODUCTS
+========================= */
+
 const filteredProducts = computed(() => {
   return products.filter(product => {
     const productName = normalize(product.name)
@@ -296,6 +316,24 @@ const filteredProducts = computed(() => {
 })
 
 /* =========================
+   PRODUCT DETAILS
+========================= */
+
+/*
+ * Open the product details page.
+ *
+ * ProductCard emits "view-product"
+ * when the user clicks the image or product name.
+ */
+const openProduct = (product) => {
+  if (!product?.id) {
+    return
+  }
+
+  router.push(`/product/${product.id}`)
+}
+
+/* =========================
    ADD TO CART
 ========================= */
 
@@ -303,6 +341,10 @@ const handleAddToCart = (product) => {
   cartStore.addToCart(product)
   showAddedToCartMessage(product)
 }
+
+/* =========================
+   DROPDOWNS
+========================= */
 
 const toggleCategoryDropdown = () => {
   isCategoryOpen.value = !isCategoryOpen.value
@@ -330,6 +372,10 @@ const selectGender = (gender) => {
   isGenderOpen.value = false
 }
 
+/* =========================
+   CLICK OUTSIDE
+========================= */
+
 const handleClickOutside = (event) => {
   if (
     categoryDropdownRef.value &&
@@ -346,6 +392,10 @@ const handleClickOutside = (event) => {
   }
 }
 
+/* =========================
+   CLEAR FILTERS
+========================= */
+
 const clearFilters = () => {
   search.value = ''
   selectedCategory.value = ''
@@ -357,6 +407,10 @@ const clearFilters = () => {
 
   router.push('/products')
 }
+
+/* =========================
+   ROUTE FILTERS
+========================= */
 
 const applyRouteFilters = () => {
   const routeCategory =
@@ -372,6 +426,10 @@ const applyRouteFilters = () => {
   selectedCategory.value = routeCategory
   selectedGender.value = routeGender
 }
+
+/* =========================
+   LIFECYCLE
+========================= */
 
 onMounted(() => {
   applyRouteFilters()
@@ -721,6 +779,7 @@ onBeforeUnmount(() => {
             v-for="product in filteredProducts"
             :key="product.id"
             :product="product"
+            @view-product="openProduct"
             @add-to-cart="handleAddToCart"
           />
 
