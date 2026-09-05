@@ -1,24 +1,9 @@
 <script setup>
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
+import { useCartStore } from '../stores/cart'
 import BaseButton from './common/Button.vue'
-
-/**
- * ProductCard - shared Product Card component (Design System)
- *
- * Expected product shape:
- * {
- *   id,
- *   name,
- *   price,
- *   currency,
- *   image,
- *   oldPrice?,
- *   discount?,
- *   rating?,
- *   reviewsCount?,
- *   brand?
- * }
- */
 
 const props = defineProps({
   product: {
@@ -39,8 +24,24 @@ const props = defineProps({
 
 const emit = defineEmits([
   'toggle-favorite',
-  'add-to-cart'
+  'add-to-cart',
+  'view-product'
 ])
+
+const router = useRouter()
+const authStore = useAuthStore()
+const cartStore = useCartStore()
+
+/*
+ * The real favorite state comes from Auth Store.
+ * The prop is kept for compatibility with existing pages.
+ */
+const favoriteState = computed(() => {
+  return (
+    props.isFavorite ||
+    authStore.isFavorite(props.product.id)
+  )
+})
 
 const hasOldPrice = computed(() => {
   return (
@@ -74,12 +75,51 @@ function formatPrice(value, currency = 'USD') {
   return `${value.toFixed(2)} ${currency}`
 }
 
-function handleFavorite() {
+/*
+ * Open product details.
+ * This is a separate event so Add to Cart never triggers it.
+ */
+function handleViewProduct() {
+  emit('view-product', props.product)
+}
+
+/*
+ * Favorite button.
+ */
+function handleFavorite(event) {
+  event.preventDefault()
+  event.stopPropagation()
+
+  /*
+   * User must be logged in before using favorites.
+   */
+  if (!authStore.isLoggedIn) {
+    router.push('/login')
+    return
+  }
+
+  authStore.toggleFavorite(props.product.id)
+
   emit('toggle-favorite', props.product)
 }
 
-function handleAddToCart() {
+/*
+ * Add product to cart.
+ *
+ * IMPORTANT:
+ * stopPropagation prevents the click from being treated
+ * as a product-details click.
+ *
+ * The actual cart operation happens here.
+ * The parent page only receives the event to show a message.
+ */
+function handleAddToCart(event) {
+  event.preventDefault()
+  event.stopPropagation()
+
   if (props.addingToCart) return
+
+  cartStore.addToCart(props.product)
 
   emit('add-to-cart', props.product)
 }
@@ -91,15 +131,24 @@ function handleImageError(event) {
 
 <template>
   <article class="product-card">
+
     <!-- Product Image -->
     <div class="product-card__media">
-      <img
-        :src="product.image"
-        :alt="product.name"
-        class="product-card__image"
-        loading="lazy"
-        @error="handleImageError"
-      />
+
+      <button
+        type="button"
+        class="product-card__image-button"
+        @click="handleViewProduct"
+        :aria-label="`View ${product.name}`"
+      >
+        <img
+          :src="product.image"
+          :alt="product.name"
+          class="product-card__image"
+          loading="lazy"
+          @error="handleImageError"
+        />
+      </button>
 
       <!-- Discount -->
       <span
@@ -111,36 +160,40 @@ function handleImageError(event) {
 
       <!-- Favorite -->
       <button
-        class="product-card__favorite"
-        :class="{ 'is-active': isFavorite }"
         type="button"
+        class="product-card__favorite"
+        :class="{ 'is-active': favoriteState }"
         :aria-label="
-          isFavorite
+          favoriteState
             ? 'Remove from favorites'
             : 'Add to favorites'
         "
-        :aria-pressed="isFavorite"
+        :aria-pressed="favoriteState"
         @click="handleFavorite"
       >
         <svg
-          width="18"
-          height="18"
+          width="20"
+          height="20"
           viewBox="0 0 24 24"
-          :fill="isFavorite ? 'currentColor' : 'none'"
+          :fill="favoriteState ? 'currentColor' : 'none'"
           aria-hidden="true"
         >
           <path
-            d="M12 21s-6.7-4.35-9.3-8.28C1 10.1 1.6 6.6 4.7 5.1c2.3-1.1 4.6-.2 5.9 1.5.5.6.9 1.2 1.4 1.9.5-.7.9-1.3 1.4-1.9 1.3-1.7 3.6-2.6 5.9-1.5 3.1 1.5 3.7 5 2 7.62C18.7 16.65 12 21 12 21z"
+            d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z"
             stroke="currentColor"
-            stroke-width="1.6"
+            stroke-width="1.8"
+            stroke-linecap="round"
             stroke-linejoin="round"
           />
         </svg>
       </button>
+
     </div>
 
     <!-- Product Info -->
     <div class="product-card__body">
+
+      <!-- Brand -->
       <p
         v-if="product.brand"
         class="product-card__brand"
@@ -148,9 +201,14 @@ function handleImageError(event) {
         {{ product.brand }}
       </p>
 
-      <h4 class="product-card__name">
+      <!-- Product Name -->
+      <button
+        type="button"
+        class="product-card__name"
+        @click="handleViewProduct"
+      >
         {{ product.name }}
-      </h4>
+      </button>
 
       <!-- Rating -->
       <div
@@ -158,7 +216,9 @@ function handleImageError(event) {
         class="product-card__rating"
         aria-label="Product rating"
       >
-        <span class="product-card__star">★</span>
+        <span class="product-card__star">
+          ★
+        </span>
 
         <span>
           {{ Number(product.rating).toFixed(1) }}
@@ -174,6 +234,7 @@ function handleImageError(event) {
 
       <!-- Prices -->
       <div class="product-card__prices">
+
         <span class="product-card__price">
           {{ formatPrice(product.price, product.currency) }}
         </span>
@@ -184,6 +245,7 @@ function handleImageError(event) {
         >
           {{ formatPrice(product.oldPrice, product.currency) }}
         </span>
+
       </div>
 
       <!-- Add to Cart -->
@@ -196,17 +258,18 @@ function handleImageError(event) {
       >
         Add to Cart
       </BaseButton>
+
     </div>
+
   </article>
 </template>
 
 <style scoped>
 .product-card {
-  display: flex;
-  flex-direction: column;
-  background-color: var(--color-white);
-  border-radius: var(--radius-card);
+  position: relative;
   overflow: hidden;
+  background-color: var(--color-white);
+  border-radius: var(--radius-default);
   box-shadow: 0 4px 16px rgba(27, 59, 54, 0.06);
   font-family: var(--font-family-base);
   transition:
@@ -215,11 +278,10 @@ function handleImageError(event) {
 }
 
 .product-card:hover {
-  box-shadow: 0 8px 24px rgba(27, 59, 54, 0.12);
+  box-shadow: 0 8px 24px rgba(27, 59, 54, 0.1);
   transform: translateY(-2px);
 }
 
-/* Image */
 .product-card__media {
   position: relative;
   aspect-ratio: 3 / 4;
@@ -227,55 +289,109 @@ function handleImageError(event) {
   overflow: hidden;
 }
 
+.product-card__image-button {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
 .product-card__image {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+  cursor: pointer;
+  transition: transform 0.3s ease;
 }
 
-/* Discount Badge */
+.product-card__image-button:hover .product-card__image {
+  transform: scale(1.03);
+}
+
 .product-card__badge {
   position: absolute;
   top: var(--space-3);
   left: var(--space-3);
+  z-index: 5;
+  padding: 4px 8px;
   background-color: var(--color-primary);
   color: var(--color-white);
   font-size: 12px;
   font-weight: 600;
-  padding: 4px var(--space-2);
   border-radius: var(--radius-pill);
+  pointer-events: none;
 }
 
-/* Favorite */
 .product-card__favorite {
   position: absolute;
   top: var(--space-3);
   right: var(--space-3);
-  width: 34px;
-  height: 34px;
-  display: inline-flex;
+  z-index: 20;
+
+  width: 40px;
+  height: 40px;
+
+  display: flex;
   align-items: center;
   justify-content: center;
-  border: none;
+
+  padding: 0;
+
+  border: 1px solid rgba(27, 59, 54, 0.1);
   border-radius: 50%;
+
   background-color: var(--color-white);
   color: var(--color-sand);
+
   cursor: pointer;
+  pointer-events: auto;
+
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+
   transition:
     color 0.2s ease,
-    transform 0.15s ease;
+    background-color 0.2s ease,
+    transform 0.15s ease,
+    box-shadow 0.2s ease;
+}
+
+.product-card__favorite svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
+  transition:
+    fill 0.2s ease,
+    transform 0.2s ease;
 }
 
 .product-card__favorite:hover {
+  color: var(--color-primary);
+  background-color: var(--color-beige);
   transform: scale(1.08);
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.12);
+}
+
+.product-card__favorite:active {
+  transform: scale(0.92);
 }
 
 .product-card__favorite.is-active {
   color: #c0435a;
+  background-color: #fff5f6;
 }
 
-/* Body */
+.product-card__favorite.is-active svg {
+  transform: scale(1.05);
+}
+
 .product-card__body {
   display: flex;
   flex-direction: column;
@@ -293,10 +409,17 @@ function handleImageError(event) {
 }
 
 .product-card__name {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+
+  font-family: inherit;
   font-size: 14px;
   font-weight: 500;
   line-height: 1.4;
   color: var(--color-gray);
+
   margin: 0;
 
   display: -webkit-box;
@@ -306,9 +429,17 @@ function handleImageError(event) {
   overflow: hidden;
 
   min-height: 2.6em;
+
+  cursor: pointer;
+  text-align: left;
+
+  transition: color 0.2s ease;
 }
 
-/* Rating */
+.product-card__name:hover {
+  color: var(--color-primary);
+}
+
 .product-card__rating {
   display: flex;
   align-items: center;
@@ -326,7 +457,6 @@ function handleImageError(event) {
   color: var(--color-sand);
 }
 
-/* Prices */
 .product-card__prices {
   display: flex;
   align-items: baseline;
@@ -337,7 +467,7 @@ function handleImageError(event) {
 .product-card__price {
   font-size: 16px;
   font-weight: 600;
-  color: var(--color-primary);
+  color: var(--color-gray);
 }
 
 .product-card__old-price {
